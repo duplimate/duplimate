@@ -1,0 +1,67 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Duplimate.ViewModels"
+             xmlns:m="using:Duplimate.Models"
+             x:Class="Duplimate.Views.DestinationAddPicker"
+             x:Name="Self">
+  <!--
+    Shared destination-picker control used by BOTH the Easy-mode
+    onboarding wizard AND the Advanced-mode backup editor. The user
+    asked for a single component so the two modes can't drift apart
+    (the Advanced "Add" button used to stay enabled with no selection
+    while Easy correctly disabled it — a class of bug only avoidable
+    by reusing one component).
+
+    Inputs are exposed as styled properties on the UserControl so each
+    call site binds against its own VM's property names without the
+    two VMs needing to agree on identical naming. The Add button is
+    internally gated on HasSelection (computed from SelectedDestination)
+    so consistency is enforced by THIS control, not by each call site
+    remembering to add an IsEnabled binding.
+
+    Layout: ComboBox + Add button on one row (hidden when no available
+    destinations remain to pick), then a "create-new" link below.
+  -->
+  <StackPanel Spacing="8">
+    <Grid ColumnDefinitions="*,Auto"
+          IsVisible="{Binding HasMoreToAdd, ElementName=Self}">
+      <ComboBox Grid.Column="0"
+                ItemsSource="{Binding AvailableDestinations, ElementName=Self}"
+                SelectedItem="{Binding SelectedDestination, ElementName=Self, Mode=TwoWay}"
+                HorizontalAlignment="Stretch"
+                PlaceholderText="Pick an existing destination">
+        <ComboBox.ItemTemplate>
+          <DataTemplate DataType="m:Destination">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <PathIcon Data="{Binding Kind, Converter={x:Static vm:DestinationKindIcon.To}}"
+                        Width="14" Height="14"
+                        Foreground="{DynamicResource DM.Brush.FgSecondary}"
+                        VerticalAlignment="Center"/>
+              <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+            </StackPanel>
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+      <!-- Inline Padding override so the button auto-sizes to match
+           the sibling ComboBox's height (ghost class default 20,11
+           is taller than the dropdown). IsEnabled is internal — the
+           button is dead until SelectedDestination is non-null,
+           same gate in Easy and Advanced modes. -->
+      <Button Grid.Column="1"
+              Classes="ghost" Content="Add"
+              Margin="10,0,0,0"
+              Padding="14,6"
+              VerticalAlignment="Center"
+              IsEnabled="{Binding HasSelection, ElementName=Self}"
+              Command="{Binding AddCommand, ElementName=Self}"/>
+    </Grid>
+    <Button Classes="ghost" HorizontalAlignment="Left"
+            Command="{Binding CreateNewCommand, ElementName=Self}">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <PathIcon Data="{StaticResource Icon.Plus}" Width="13" Height="13"/>
+        <TextBlock Text="{Binding CreateNewLabel, ElementName=Self}"
+                   VerticalAlignment="Center"/>
+      </StackPanel>
+    </Button>
+  </StackPanel>
+</UserControl>

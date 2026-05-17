@@ -1,0 +1,777 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Duplimate.ViewModels"
+             xmlns:m="using:Duplimate.Models"
+             xmlns:svc="using:Duplimate.Services"
+             xmlns:v="using:Duplimate.Views"
+             x:Class="Duplimate.Views.RestoreView"
+             x:DataType="vm:RestoreViewModel"
+             Background="{DynamicResource DM.Brush.BgBase}">
+
+  <UserControl.Styles>
+    <!-- Selection-row chips for the wizard's pick-source / pick-destination
+         steps. The RadioButton dot inside is the canonical "selected"
+         indicator, but on its own the row felt static — users hovering
+         over a chip got no visual proof it was clickable. AccentTintHover
+         deepens the background on pointerover to fix that.
+
+         Also styles the revision ListBox's :selected and :pointerover
+         items so the picked row is unambiguously highlighted (was relying
+         on the FluentTheme default which is barely visible against our
+         cream surface). -->
+    <Style Selector="Border.picker-row">
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.11" Easing="ExponentialEaseOut"/>
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Border.picker-row:pointerover">
+      <Setter Property="Background" Value="{DynamicResource DM.Brush.AccentTintHover}"/>
+    </Style>
+
+    <!-- Button-as-row variant for the destination picker. The previous
+         Border-with-PointerPressed/Tapped approach silently dropped
+         clicks on this template — the user reported: "Clicking on
+         Which destination to read from doesn't work at all, it won't
+         select the item." Buttons are the known-reliable click
+         target in Avalonia: Click always fires, the bound Command
+         takes the row's Destination via CommandParameter, and we
+         keep keyboard activation for free. The Button is templated
+         here to look identical to the old Border row (cream tint,
+         8px corners, 14×10 padding, hover-deepen). -->
+    <Style Selector="Button.picker-row-button">
+      <Setter Property="Background" Value="{DynamicResource DM.Brush.AccentTint}"/>
+      <Setter Property="BorderBrush" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="14,10"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="HorizontalAlignment" Value="Stretch"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+    </Style>
+    <Style Selector="Button.picker-row-button /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{TemplateBinding Background}"/>
+      <Setter Property="BorderBrush" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.11" Easing="ExponentialEaseOut"/>
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Button.picker-row-button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource DM.Brush.AccentTintHover}"/>
+    </Style>
+    <Style Selector="Button.picker-row-button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource DM.Brush.AccentTintHover}"/>
+    </Style>
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource DM.Brush.AccentTint}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.Accent}"/>
+      <Setter Property="BorderThickness" Value="0,0,3,0"/>
+    </Style>
+    <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource DM.Brush.AccentTintHover}"/>
+    </Style>
+  </UserControl.Styles>
+
+  <DockPanel LastChildFill="True">
+
+    <!-- ============================= Header ============================= -->
+    <StackPanel DockPanel.Dock="Top" Margin="48,40,48,20">
+      <TextBlock Classes="page-title" Text="Bring files back"/>
+      <TextBlock Classes="page-subtitle" MaxWidth="720"
+                 Text="Pick a backup, choose a moment in time, and restore whichever files you need. Default is back to where they came from — you can pick a different folder if you’d rather not overwrite anything."/>
+    </StackPanel>
+
+    <Border DockPanel.Dock="Top" Classes="rule" Margin="48,0,48,0"/>
+
+    <!-- ========================== Wizard body ===========================
+         Two zones share the LastChildFill slot:
+           1) ScrollViewer wrapping every input step (PickBackup → PickTarget,
+              Summary). These steps have natural content-driven heights and
+              benefit from page-level scrolling.
+           2) A sibling Grid hosting the Progress step ONLY. The progress
+              log can grow to hundreds of MB across a long restore, and
+              under the previous "everything inside one ScrollViewer"
+              layout that growth pushed the outer scroller bigger and
+              bigger — the user reported: "the component becomes huge
+              and we have to use the scrollbar at the right of the app
+              to move down". Hosting Progress outside the outer
+              ScrollViewer gives its terminal pane a finite parent
+              height; the log scrolls INTERNALLY instead of dragging
+              the page along with it.
+    -->
+    <Grid>
+    <ScrollViewer IsVisible="{Binding IsScrollableInputStep}">
+      <Grid Margin="48,22,48,48" RowDefinitions="Auto,*">
+
+        <!-- Step indicator: quiet, always reflects effective length
+             (PickSource/PickDestination collapse for single-source /
+             single-destination backups, so the count is honest). Hidden
+             during Progress/Summary — those aren't input steps. -->
+        <TextBlock Grid.Row="0" Classes="label-caps"
+                   Text="{Binding WizardStepLabel}"
+                   IsVisible="{Binding ShowWizardStepIndicator}"
+                   Margin="0,0,0,12"/>
+
+        <Grid Grid.Row="1">
+
+        <!-- ===================== Step 1: PICK BACKUP ===================== -->
+        <!-- Step 1 (PickBackup) is reachable only as a defensive
+             empty-state — the Restore wizard's only entry point is
+             the per-backup "Restore files" button on a BackupCard,
+             which fires AppNavigator.PreselectRestoreBackup and
+             auto-advances past this step. If the user somehow lands
+             here with no backup picked (stale shortcut, race in
+             nav ordering), surface the explicit "open a backup card
+             to start" callout instead of a dead picker.
+
+             A surfaced PickBackupNoticeText also renders here so
+             "this backup hasn't run yet" / "this backup is currently
+             running" feedback from NextFromBackupAsync's pre-flight
+             gates is visible at the bottom of the placeholder. -->
+        <StackPanel IsVisible="{Binding IsStepPickBackup}" Spacing="16">
+          <Border Classes="empty-state">
+            <Grid ColumnDefinitions="Auto,20,*">
+              <Border Grid.Column="0" Classes="empty-state-glyph">
+                <PathIcon Data="{StaticResource Icon.Clock}"/>
+              </Border>
+              <StackPanel Grid.Column="2" Spacing="16">
+                <TextBlock Classes="card-title" Text="Pick a backup to restore from"/>
+                <TextBlock Classes="body" TextWrapping="Wrap"
+                           Text="Open the Backups page, find the backup you want, and click the Restore files button on its card. That'll bring you back here with the source / revision / files pickers ready to go."/>
+                <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0">
+                  <Button Classes="primary"
+                          Content="Go to Backups"
+                          Command="{Binding GoToBackupsCommand}"/>
+                </StackPanel>
+              </StackPanel>
+            </Grid>
+          </Border>
+          <Border Classes="callout"
+                  IsVisible="{Binding PickBackupNoticeText, Converter={x:Static vm:NotEmpty.To}}">
+            <TextBlock Classes="body" TextWrapping="Wrap"
+                       Text="{Binding PickBackupNoticeText}"
+                       Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+          </Border>
+        </StackPanel>
+
+        <!-- ============== Step 1b: PICK SOURCE (multi-source only) =============
+             Multi-select checkboxes — the user can tick more than one
+             source and the wizard restores latest revision of every
+             ticked source in one pass. Single tick falls back to the
+             original per-source flow with revision + file pickers. -->
+        <StackPanel IsVisible="{Binding IsStepPickSource}" Spacing="14">
+          <TextBlock Classes="section-title" Text="Which folders do you want to restore?"/>
+          <TextBlock Classes="body" Foreground="{DynamicResource DM.Brush.FgSecondary}" TextWrapping="Wrap"
+                     Text="This backup covers more than one source folder. Tick one to walk through revision + file pickers, or tick several to restore the latest revision of each in one pass."/>
+          <ItemsControl ItemsSource="{Binding SourcesForBackup}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="vm:SourcePickRow">
+                <!-- Single-line row: [checkbox]  📁  path
+                     Tight 8px between checkbox and icon, 6px between
+                     icon and path. The previous 12px / 8px column
+                     widths produced a visible gap that read as
+                     misalignment. The whole Border has Cursor=Hand
+                     so clicking anywhere in the row toggles the
+                     checkbox via PointerPressed below. -->
+                <Border Classes="picker-row"
+                        Background="{DynamicResource DM.Brush.AccentTint}"
+                        CornerRadius="8" Padding="14,10" Margin="0,0,0,6"
+                        Cursor="Hand">
+                  <Grid ColumnDefinitions="Auto,8,Auto,6,*" VerticalAlignment="Center">
+                    <CheckBox Grid.Column="0"
+                              VerticalAlignment="Center"
+                              IsChecked="{Binding IsSelected, Mode=TwoWay}"/>
+                    <PathIcon Grid.Column="2" Data="{StaticResource Icon.Folder}"
+                              Width="14" Height="14"
+                              Foreground="{DynamicResource DM.Brush.Accent}"
+                              VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="4" Classes="mono" Text="{Binding Path}"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource DM.Brush.FgPrimary}"
+                               VerticalAlignment="Center"/>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button Classes="ghost" Content="Back"
+                    IsVisible="{Binding CanGoBack}"
+                    Command="{Binding BackCommand}"/>
+            <Button Classes="primary" Content="Next: pick destination"
+                    IsEnabled="{Binding HasAnyCheckedSource}"
+                    Command="{Binding NextFromSourceCommand}"/>
+          </StackPanel>
+        </StackPanel>
+
+        <!-- ================== Step 2: PICK DESTINATION ===================
+             Same compact chip layout + left-side selector as the source
+             step above. -->
+        <StackPanel IsVisible="{Binding IsStepPickDestination}" Spacing="14">
+          <TextBlock Classes="section-title" Text="Which destination to read from?"/>
+          <TextBlock Classes="body" Foreground="{DynamicResource DM.Brush.FgSecondary}"
+                     Text="This backup lives on more than one destination. They all contain the same revisions; pick whichever is reachable right now."/>
+          <ItemsControl ItemsSource="{Binding DestinationPickRows}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="vm:DestinationPickRow">
+                <!-- Whole-row Button. Click anywhere fires the parent
+                     VM's PickDestinationCommand with this row as the
+                     parameter; the command sets IsSelected on every
+                     row (true for clicked, false for siblings) and
+                     mirrors the choice into SelectedDestination.
+                     The radio dot binds directly to the row's own
+                     IsSelected so it actually moves on click — the
+                     earlier $parent[ItemsControl].SelectedDestination
+                     RefEq chain didn't propagate notification back
+                     to per-row IsChecked, leaving the dot frozen.
+                     See InteractionDestinationClickTests for the
+                     regression guard. -->
+                <Button Classes="picker-row-button"
+                        Margin="0,0,0,6"
+                        Command="{Binding $parent[ItemsControl].((vm:RestoreViewModel)DataContext).PickDestinationCommand}"
+                        CommandParameter="{Binding}">
+                  <Grid ColumnDefinitions="Auto,8,Auto,10,Auto,8,*"
+                        VerticalAlignment="Center">
+                    <RadioButton Grid.Column="0" GroupName="pickDest"
+                                 VerticalAlignment="Center"
+                                 IsHitTestVisible="False"
+                                 Focusable="False"
+                                 IsChecked="{Binding IsSelected, Mode=OneWay}"/>
+                    <PathIcon Grid.Column="2"
+                              Data="{Binding Destination.Kind, Converter={x:Static vm:DestinationKindIcon.To}}"
+                              Width="14" Height="14"
+                              Foreground="{DynamicResource DM.Brush.Accent}"
+                              VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="4" Text="{Binding Destination.Name}"
+                               FontSize="13" FontWeight="SemiBold"
+                               Foreground="{DynamicResource DM.Brush.FgPrimary}"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="6" Classes="mono" FontSize="12"
+                               TextTrimming="CharacterEllipsis"
+                               Text="{Binding Destination.PathOrSubpath}"
+                               Foreground="{DynamicResource DM.Brush.FgSecondary}"
+                               VerticalAlignment="Center"/>
+                  </Grid>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button Classes="ghost" Content="Back"
+                    IsVisible="{Binding CanGoBack}"
+                    Command="{Binding BackCommand}"/>
+            <!-- Disable Next until the user actually picks a destination
+                 (mirrors the source-step gate). Without this, clicking
+                 Next without ticking the radio looked like the button
+                 was broken — NextFromDestinationAsync silently returns
+                 when SelectedDestination is null. -->
+            <Button Classes="primary" Content="Next: pick a revision"
+                    IsEnabled="{Binding SelectedDestination, Converter={x:Static vm:IsNotNull.To}}"
+                    Command="{Binding NextFromDestinationCommand}"/>
+          </StackPanel>
+        </StackPanel>
+
+        <!-- =================== Step 3: PICK REVISION =====================
+             Two layouts share this step:
+             • Single-source mode (MultiSourceMode = false): a ListBox
+               picker bound to Revisions, SelectedRevision drives
+               PickFiles next.
+             • Multi-source mode (MultiSourceMode = true): a read-only
+               summary listing each picked source's latest revision —
+               the user explicitly asked: "Always show revision even
+               if there is only one (helpful for user to see how old
+               it is)". Previously multi-source skipped this step
+               entirely. The Next button advances straight to
+               PickTarget (file picking is bypassed for multi-source).
+        -->
+        <StackPanel IsVisible="{Binding IsStepPickRevision}" Spacing="16">
+          <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+            <TextBlock Grid.Column="0" Classes="section-title"
+                       Text="Go back to when?"
+                       IsVisible="{Binding !MultiSourceMode}"/>
+            <TextBlock Grid.Column="0" Classes="section-title"
+                       Text="Confirm what you're restoring"
+                       IsVisible="{Binding MultiSourceMode}"/>
+            <!-- Loading affordance: indeterminate progress bar + label so
+                 the user has visual proof the app is doing work, instead
+                 of a static "Looking this up…" string that looks identical
+                 to a stuck UI. -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10"
+                        VerticalAlignment="Center"
+                        IsVisible="{Binding LoadingRevisions}">
+              <ProgressBar IsIndeterminate="True" Width="80" Height="4"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource DM.Brush.Accent}"
+                           Background="{DynamicResource DM.Brush.AccentTint}"/>
+              <TextBlock Classes="dim" Text="Reading revisions from the destination…" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Grid>
+          <Border Classes="callout" IsVisible="{Binding LoadError, Converter={x:Static vm:NotEmpty.To}}">
+            <TextBlock Classes="body" Text="{Binding LoadError}" TextWrapping="Wrap"
+                       Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+          </Border>
+
+          <!-- Multi-source explainer. Each source has its own revision
+               timeline; the wizard restores every file of each
+               source's LATEST revision in one pass. The list below
+               surfaces those latest revisions so the user can sanity-
+               check the dates before committing. -->
+          <TextBlock Classes="body" Foreground="{DynamicResource DM.Brush.FgSecondary}"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding MultiSourceMode}"
+                     Text="You picked more than one source folder. Each source has its own revision timeline; the wizard will restore every file of each source's latest revision below. Click Next to choose where they go."/>
+
+          <!-- Single-source picker. Hidden in multi-source mode. -->
+          <Border Classes="surface" MinHeight="240" Padding="0"
+                  IsVisible="{Binding !MultiSourceMode}">
+            <Grid>
+              <ListBox ItemsSource="{Binding Revisions}"
+                       SelectedItem="{Binding SelectedRevision}"
+                       Background="Transparent" BorderThickness="0"
+                       IsVisible="{Binding HasRevisions}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate DataType="svc:RevisionSummary">
+                    <!-- File count + bytes columns dropped: duplicacy
+                         -log list doesn't emit per-revision file/bytes
+                         counts, so they were always rendering "0 files"
+                         and "0 B" — misleading. Just show revision
+                         number + creation time, which is what the
+                         user is actually picking by. The same drop
+                         applies to the multi-source summary view. -->
+                    <Grid ColumnDefinitions="90,*" Margin="16,6">
+                      <TextBlock Grid.Column="0" Classes="mono"
+                                 Text="{Binding Number, StringFormat='\#{0}'}"/>
+                      <TextBlock Grid.Column="1" Classes="body"
+                                 Text="{Binding CreatedUtc, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"/>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+              <!-- Empty-state placeholder. Visible only when the list
+                   loaded cleanly (no LoadError, not LoadingRevisions) but
+                   came back empty — typically a freshly-created backup
+                   that has never run, or a backup whose only run failed
+                   before producing a snapshot. The LoadError callout
+                   above handles the "couldn't load" case. -->
+              <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                          Spacing="6" Margin="32"
+                          IsVisible="{Binding ShowNoRevisionsHint}">
+                <TextBlock Classes="dim" HorizontalAlignment="Center" FontSize="14"
+                           Text="No revisions yet"/>
+                <TextBlock Classes="dim" HorizontalAlignment="Center" TextWrapping="Wrap"
+                           MaxWidth="420" TextAlignment="Center"
+                           Text="This backup hasn't completed a successful run yet. Run it once from the Backups page, then come back here to restore."/>
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <!-- Multi-source read-only summary. One row per picked source
+               with its latest revision number + age + size. -->
+          <Border Classes="surface" MinHeight="180" Padding="0"
+                  IsVisible="{Binding MultiSourceMode}">
+            <ItemsControl ItemsSource="{Binding MultiSourceRevisions}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="vm:MultiSourceRevisionRow">
+                  <!-- Per-row layout: [folder icon] path · #N · YYYY-MM-DD HH:MM
+                       Size column was dropped because `duplicacy -log list`
+                       doesn't emit per-revision file count or byte totals
+                       in its standard output (the regex tries but
+                       always falls through to 0), and "0 B" looked like
+                       a real metric rather than a missing one. -->
+                  <Grid ColumnDefinitions="Auto,10,*,Auto" Margin="16,8">
+                    <PathIcon Grid.Column="0" Data="{StaticResource Icon.Folder}"
+                              Width="13" Height="13"
+                              Foreground="{DynamicResource DM.Brush.Accent}"
+                              VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="2" Classes="mono"
+                               Text="{Binding SourcePath}"
+                               TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="3" Classes="dim"
+                               Margin="14,0,0,0" VerticalAlignment="Center"
+                               Text="{Binding VerdictLabel}"/>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Border>
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button Classes="ghost" Content="Back"
+                    IsVisible="{Binding CanGoBack}"
+                    Command="{Binding BackCommand}"/>
+            <!-- Single-source: needs a SelectedRevision before advancing.
+                 Multi-source: the row list is read-only, no selection
+                 required — Next is always enabled. -->
+            <Button Classes="primary" Content="Next: pick files to restore"
+                    IsVisible="{Binding !MultiSourceMode}"
+                    IsEnabled="{Binding SelectedRevision, Converter={x:Static vm:IsNotNull.To}}"
+                    Command="{Binding NextFromRevisionCommand}"/>
+            <Button Classes="primary" Content="Next: where to restore"
+                    IsVisible="{Binding MultiSourceMode}"
+                    Command="{Binding NextFromRevisionCommand}"/>
+          </StackPanel>
+        </StackPanel>
+
+        <!-- ===================== Step 4: PICK FILES ======================
+             Hoisted out of this ScrollViewer (see the sibling DockPanel
+             below the closing </ScrollViewer>) so the file list has a
+             window-relative height instead of a fixed cap. The inline
+             version was deleted because its parent ScrollViewer made
+             "fill remaining space" impossible. -->
+
+        <!-- ===================== Step 5: PICK TARGET ===================== -->
+        <StackPanel IsVisible="{Binding IsStepPickTarget}" Spacing="16">
+          <TextBlock Classes="section-title" Text="Where to?"/>
+
+          <Border Classes="section">
+            <StackPanel Spacing="14">
+              <RadioButton GroupName="target" IsChecked="{Binding TargetOriginalSource}"
+                           Content="Restore to the original source"
+                           Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+              <TextBlock Classes="dim" Margin="26,0,0,0" TextWrapping="Wrap"
+                         Text="{Binding OriginalSourceTargetLabel}"/>
+              <Border Classes="rule"/>
+              <RadioButton GroupName="target" IsChecked="{Binding TargetOriginalSource, Converter={x:Static vm:Neg.To}}"
+                           Content="Restore to a different folder"
+                           Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+              <Grid ColumnDefinitions="*,Auto" Margin="26,0,0,0">
+                <TextBox Grid.Column="0" Text="{Binding CustomTargetPath}"
+                         Watermark="Pick a folder"
+                         IsEnabled="{Binding TargetOriginalSource, Converter={x:Static vm:Neg.To}}"/>
+                <Button Grid.Column="1" Classes="ghost" Content="Browse" Margin="10,0,0,0"
+                        IsEnabled="{Binding TargetOriginalSource, Converter={x:Static vm:Neg.To}}"
+                        Command="{Binding BrowseCustomTargetCommand}"/>
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <!-- Advanced: collapsed by default so beginners aren't
+               distracted by knobs they don't need. Power users
+               toggle it open to reach Preserve/Overwrite/Threads.
+               Styled in Controls.axaml as Expander.advanced —
+               small chevron, subtle uppercase header, no chunky
+               border. The rule between this and the primary
+               "Where to?" panel is provided by Border.section's
+               own bottom-border above; we DON'T add a separate
+               <Border Classes="rule"/> here (the user reported
+               "there are even 2 horizontal separators weirdly"
+               from the duplicate). -->
+          <Expander Classes="advanced" Header="Advanced" IsExpanded="False">
+            <StackPanel Spacing="14" Margin="0,8,0,0">
+              <Grid ColumnDefinitions="*,16,*" RowDefinitions="Auto" VerticalAlignment="Top">
+                <CheckBox Grid.Column="0"
+                          IsChecked="{Binding PreserveStructure}"
+                          Content="Preserve directory structure"
+                          Foreground="{DynamicResource DM.Brush.FgPrimary}"
+                          VerticalAlignment="Center"/>
+                <CheckBox Grid.Column="2"
+                          IsChecked="{Binding OverwriteExisting}"
+                          Content="Overwrite existing files at target"
+                          Foreground="{DynamicResource DM.Brush.FgPrimary}"
+                          VerticalAlignment="Center"/>
+              </Grid>
+              <Grid ColumnDefinitions="Auto,12,Auto,*" VerticalAlignment="Center">
+                <TextBlock Grid.Column="0" Classes="body"
+                           Foreground="{DynamicResource DM.Brush.FgPrimary}"
+                           VerticalAlignment="Center"
+                           Text="Restore threads"/>
+                <NumericUpDown Grid.Column="2"
+                               Value="{Binding Threads}" Minimum="1" Maximum="16"
+                               Width="120" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="3" Classes="dim" FontSize="12"
+                           Margin="14,0,0,0" VerticalAlignment="Center"
+                           TextWrapping="Wrap"
+                           Text="Failed files retry in parallel; cascade set in Settings."/>
+              </Grid>
+            </StackPanel>
+          </Expander>
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button Classes="ghost" Content="Back"
+                    IsVisible="{Binding CanGoBack}"
+                    Command="{Binding BackCommand}"/>
+            <Button Classes="primary" Content="Restore" Command="{Binding NextFromTargetCommand}"/>
+          </StackPanel>
+        </StackPanel>
+
+        <!-- Step 6 (Progress) is rendered OUTSIDE this ScrollViewer
+             so its log can scroll internally instead of pushing the
+             page header off-screen. See the sibling Grid below the
+             closing </ScrollViewer> for the actual content. -->
+
+        <!-- Step 7 (Summary) is rendered together with Step 6
+             (Progress) by the OUTER sibling Grid below — they share
+             the dark-terminal layout so the user can keep reading
+             the log after the run finishes. The Retry-all-failed
+             surface is hosted inside that same Grid (Failures pane). -->
+
+        </Grid>
+      </Grid>
+    </ScrollViewer>
+
+    <!-- ===================== Step 4: PICK FILES (hoisted) =================
+         Sibling of the input ScrollViewer (NOT inside it) so the file
+         list below has a finite parent height — its internal
+         ScrollViewer handles overflow instead of pushing the Next
+         button off the page. The user reported: "the file selector
+         list in step 3 should have a height limited to the window
+         height so it ALWAYS shows between the filter and the Next
+         button (and we always can see the Next button)". -->
+    <DockPanel IsVisible="{Binding IsStepPickFiles}"
+               Margin="48,22,48,48"
+               LastChildFill="True">
+      <!-- Step indicator: same style as the inner ScrollViewer's
+           label so the visual continuity is preserved across step
+           transitions. -->
+      <TextBlock DockPanel.Dock="Top"
+                 Classes="label-caps"
+                 Text="{Binding WizardStepLabel}"
+                 IsVisible="{Binding ShowWizardStepIndicator}"
+                 Margin="0,0,0,12"/>
+
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,0,0,12">
+        <TextBlock Grid.Column="0" Classes="section-title" Text="Which files?"/>
+        <TextBlock Grid.Column="1" Classes="dim" Text="Loading files…"
+                   IsVisible="{Binding LoadingFiles}" VerticalAlignment="Center"/>
+        <Button Grid.Column="2" Classes="ghost" Content="Select all"
+                Margin="12,0,0,0" Command="{Binding SelectAllCommand}"/>
+        <Button Grid.Column="3" Classes="ghost" Content="Clear"
+                Margin="8,0,0,0" Command="{Binding ClearSelectionCommand}"/>
+      </Grid>
+
+      <Border DockPanel.Dock="Top"
+              Classes="callout"
+              Margin="0,0,0,10"
+              IsVisible="{Binding LoadError, Converter={x:Static vm:NotEmpty.To}}">
+        <TextBlock Classes="body" Text="{Binding LoadError}" TextWrapping="Wrap"
+                   Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+      </Border>
+
+      <!-- Shell-launch filter chip (same as the in-scroll version). -->
+      <Border DockPanel.Dock="Top"
+              Background="{DynamicResource DM.Brush.AccentTint}"
+              CornerRadius="{DynamicResource DM.CornerRadiusSmall}"
+              Padding="14,10"
+              Margin="0,0,0,10"
+              IsVisible="{Binding HasShellLaunchFilter}">
+        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+          <TextBlock Grid.Column="0" Classes="body" VerticalAlignment="Center"
+                     TextTrimming="CharacterEllipsis"
+                     Foreground="{DynamicResource DM.Brush.FgPrimary}">
+            <Run Text="Filtered to: "/>
+            <Run Text="{Binding ShellLaunchFilterPath}" FontWeight="SemiBold"/>
+          </TextBlock>
+          <Button Grid.Column="1" Classes="row-action"
+                  Content="Clear"
+                  Command="{Binding ClearShellLaunchFilterCommand}"/>
+        </Grid>
+      </Border>
+
+      <TextBox DockPanel.Dock="Top"
+               Margin="0,0,0,10"
+               Text="{Binding FileFilter}"
+               Watermark="Type a part of a filename to narrow down…"/>
+
+      <!-- Bottom strip: counts on the left, Back/Next on the right.
+           Docked Bottom so it stays glued to the page bottom no
+           matter how big the file list grows. -->
+      <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+        <TextBlock Grid.Column="0" Classes="dim" VerticalAlignment="Center">
+          <Run Text="{Binding SelectedFilesCount}"/>
+          <Run Text=" files · "/>
+          <Run Text="{Binding SelectedFilesBytes, Converter={x:Static vm:HumanSize.To}}"/>
+          <Run Text=" selected"/>
+        </TextBlock>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+          <Button Classes="ghost" Content="Back"
+                  IsVisible="{Binding CanGoBack}"
+                  Command="{Binding BackCommand}"/>
+          <Button Classes="primary" Content="Next: where to restore"
+                  Command="{Binding NextFromFilesCommand}"/>
+        </StackPanel>
+      </Grid>
+
+      <!-- LastChildFill: the file list takes whatever vertical space
+           remains between the docked header and the docked footer.
+           Its inner ScrollViewer handles overflow internally — the
+           user reported "put the scrollbar inside the file list".
+           No MaxHeight here: the DockPanel layout naturally caps it
+           at the window viewport, and the MainWindow's MinHeight
+           keeps that viewport tall enough to be usable. -->
+      <Border Classes="surface" Padding="0">
+        <ListBox ItemsSource="{Binding FilteredFiles}"
+                 Background="Transparent" BorderThickness="0"
+                 ScrollViewer.VerticalScrollBarVisibility="Visible">
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="vm:RevisionFileRow">
+              <Grid ColumnDefinitions="28,*,100,120" Margin="12,2">
+                <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}"/>
+                <TextBlock Grid.Column="1" Classes="mono" Text="{Binding Path}" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Grid.Column="2" Classes="dim" HorizontalAlignment="Right"
+                           Text="{Binding SizeBytes, Converter={x:Static vm:HumanSize.To}}"/>
+                <TextBlock Grid.Column="3" Classes="dim" HorizontalAlignment="Right"
+                           Text="{Binding ModifiedUtc, StringFormat='{}{0:yyyy-MM-dd}'}"/>
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Border>
+    </DockPanel>
+
+    <!-- ====================== Step 6: PROGRESS =======================
+         Sibling of the ScrollViewer (NOT inside it) so the terminal
+         pane below has a finite parent height — its inner scrollbar
+         handles log growth instead of dragging the whole page along
+         with it.
+
+         Layout: stats strip + Cancel button on top; below, a 2-pane
+         row with the dark terminal log on the left and the Failures
+         list on the right, both scrolling internally. Terminal styling
+         matches the Activity & Logs pane (same dark palette,
+         traffic-light dots, monospace font, no focus ring) so the
+         user sees a consistent "shell output" surface across the
+         app. The user explicitly asked: "the Log component should
+         have the same format as in Activity & Logs". -->
+    <Grid IsVisible="{Binding IsStepProgressOrSummary}"
+          Margin="48,22,48,48"
+          RowDefinitions="Auto,Auto,Auto,*">
+      <!-- Title swaps based on step. The terminal + stats stay
+           visible on Summary so the user can keep reading the log
+           after the run finishes — they reported "when the restore
+           completes, don't hide the console". -->
+      <TextBlock Grid.Row="0" Classes="section-title"
+                 Text="Restoring…"
+                 IsVisible="{Binding IsStepProgress}"/>
+      <TextBlock Grid.Row="0" Classes="section-title"
+                 Text="Restore complete"
+                 IsVisible="{Binding IsStepSummary}"/>
+
+      <Grid Grid.Row="1" ColumnDefinitions="*,*,*,*" Margin="0,6,0,14">
+        <StackPanel Grid.Column="0" Spacing="4">
+          <TextBlock Classes="label-caps" Text="TOTAL"/>
+          <TextBlock Text="{Binding TotalFiles}" Classes="stat-value"/>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Spacing="4">
+          <TextBlock Classes="label-caps" Text="RESTORED"/>
+          <TextBlock Text="{Binding RestoredCount}" Classes="stat-value"
+                     Foreground="{DynamicResource DM.Brush.Accent}"/>
+        </StackPanel>
+        <StackPanel Grid.Column="2" Spacing="4">
+          <TextBlock Classes="label-caps" Text="RETRYING"/>
+          <TextBlock Text="{Binding InFlightCount}" Classes="stat-value"
+                     Foreground="{DynamicResource DM.Brush.Warn}"/>
+        </StackPanel>
+        <StackPanel Grid.Column="3" Spacing="4">
+          <TextBlock Classes="label-caps" Text="FAILED"/>
+          <TextBlock Text="{Binding FailedCount}" Classes="stat-value"
+                     Foreground="{DynamicResource DM.Brush.Danger}"/>
+        </StackPanel>
+      </Grid>
+
+      <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,0,0,12" VerticalAlignment="Center">
+        <!-- During the run: Cancel on the left. After completion:
+             SummaryLine on the left + action buttons on the right.
+             Both flavours stay rendered against the same row so the
+             terminal Border below doesn't visually shift between
+             Progress and Summary steps. -->
+        <Button Grid.Column="0" Classes="danger" Content="Cancel"
+                HorizontalAlignment="Left"
+                Command="{Binding CancelCommand}"
+                IsVisible="{Binding IsRunning}"/>
+        <TextBlock Grid.Column="0" Classes="body"
+                   VerticalAlignment="Center"
+                   IsVisible="{Binding IsStepSummary}"
+                   Foreground="{DynamicResource DM.Brush.FgPrimary}"
+                   Text="{Binding SummaryLine}"/>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10"
+                    IsVisible="{Binding IsStepSummary}">
+          <Button Classes="primary" Content="Open target folder"
+                  Command="{Binding OpenTargetFolderCommand}"/>
+          <Button Classes="ghost" Content="Restore another"
+                  Command="{Binding StartOverCommand}"/>
+        </StackPanel>
+      </Grid>
+
+      <Grid Grid.Row="3" ColumnDefinitions="2*,16,*">
+        <!-- Terminal-styled log pane. Reproduces the Activity &amp;
+             Logs look (dark background, traffic-light dots, monospace
+             body) so the visual language is consistent. The TextBox
+             scrolls internally because its parent Grid row is *-sized
+             AND that row has a finite height (the wizard body sits
+             outside the outer ScrollViewer). -->
+        <Border Grid.Column="0"
+                Background="#0E1116"
+                BorderBrush="#1F2630"
+                BorderThickness="1"
+                CornerRadius="10"
+                ClipToBounds="True">
+          <DockPanel LastChildFill="True">
+            <Border DockPanel.Dock="Top"
+                    Background="#161B22"
+                    BorderBrush="#1F2630"
+                    BorderThickness="0,0,0,1"
+                    Padding="14,9">
+              <Grid ColumnDefinitions="Auto,14,*" VerticalAlignment="Center">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6"
+                            VerticalAlignment="Center">
+                  <Ellipse Width="11" Height="11" Fill="#FF5F56"/>
+                  <Ellipse Width="11" Height="11" Fill="#FFBD2E"/>
+                  <Ellipse Width="11" Height="11" Fill="#27C93F"/>
+                </StackPanel>
+                <TextBlock Grid.Column="2"
+                           Text="Restore log"
+                           FontFamily="{DynamicResource DM.Font.Mono}"
+                           FontSize="12" FontWeight="SemiBold"
+                           Foreground="#C9D1D9"
+                           VerticalAlignment="Center"/>
+              </Grid>
+            </Border>
+
+            <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Auto"
+                          AllowAutoHide="False"
+                          Background="Transparent">
+              <SelectableTextBlock Text="{Binding ProgressLog}"
+                                   Background="Transparent"
+                                   SelectionBrush="#264F78"
+                                   Padding="16,12,16,16"
+                                   FontFamily="{DynamicResource DM.Font.Mono}"
+                                   FontSize="12.5"
+                                   LineHeight="19"
+                                   Foreground="#D7DCE2"
+                                   TextWrapping="NoWrap"/>
+            </ScrollViewer>
+          </DockPanel>
+        </Border>
+
+        <Border Grid.Column="2" Classes="surface" Padding="18,14">
+          <DockPanel LastChildFill="True">
+            <TextBlock DockPanel.Dock="Top" Classes="section-title" Text="Failures"/>
+            <ScrollViewer>
+              <ItemsControl ItemsSource="{Binding FailuresList}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate DataType="vm:FailedFileRow">
+                    <StackPanel Margin="0,4" Spacing="2">
+                      <TextBlock Classes="mono" Text="{Binding Path}" TextTrimming="CharacterEllipsis"/>
+                      <TextBlock Classes="dim" Text="{Binding LastError}" FontSize="12"/>
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </DockPanel>
+        </Border>
+      </Grid>
+    </Grid>
+
+    </Grid>
+  </DockPanel>
+</UserControl>

@@ -1,0 +1,23 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Light">
+      <!-- Hover = ~8% darker, Deep = ~20% darker (Graphite is already
+           dark, so the deep step is moderated). -->
+      <SolidColorBrush x:Key="DM.Brush.Accent"          Color="#FF1F2937"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentHover"     Color="#FF1B2532"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentDeep"      Color="#FF111827"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTint"      Color="#141F2937"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTintHover" Color="#1F1F2937"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTintFg"    Color="#FF111827"/>
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="DM.Brush.Accent"          Color="#FFE5E7EB"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentHover"     Color="#FFF3F4F6"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentDeep"      Color="#FFD1D5DB"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTint"      Color="#22E5E7EB"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTintHover" Color="#44E5E7EB"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTintFg"    Color="#FFD1D5DB"/>
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

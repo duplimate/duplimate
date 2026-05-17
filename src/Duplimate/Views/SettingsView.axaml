@@ -1,0 +1,508 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Duplimate.ViewModels"
+             xmlns:m="using:Duplimate.Models"
+             xmlns:conv="using:Avalonia.Data.Converters"
+             x:Class="Duplimate.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel"
+             Background="{DynamicResource DM.Brush.BgBase}">
+
+  <ScrollViewer>
+    <StackPanel Margin="48,40,48,48" Spacing="24" HorizontalAlignment="Stretch">
+
+      <StackPanel>
+        <TextBlock Classes="page-title" Text="Settings"/>
+        <TextBlock Classes="page-subtitle"
+                   Text="Choose how Duplimate looks, how it lets you know when a backup runs, and how it can reach you."/>
+      </StackPanel>
+
+      <!-- Appearance -->
+      <Border Classes="surface">
+        <StackPanel Spacing="18">
+          <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,4">
+            <Border Classes="section-glyph">
+              <PathIcon Data="{StaticResource Icon.Palette}"/>
+            </Border>
+            <TextBlock Classes="section-title" Text="Appearance" Margin="0" VerticalAlignment="Center"/>
+          </StackPanel>
+
+          <Grid ColumnDefinitions="*,22,*">
+            <StackPanel Grid.Column="0" Spacing="6">
+              <TextBlock Classes="label-caps" Text="THEME"/>
+              <ComboBox ItemsSource="{Binding AvailableThemes}"
+                        SelectedItem="{Binding Theme}"
+                        HorizontalAlignment="Stretch"/>
+              <TextBlock Classes="helper"
+                         Text="System follows your Windows setting."/>
+            </StackPanel>
+            <StackPanel Grid.Column="2" Spacing="6">
+              <TextBlock Classes="label-caps" Text="ACCENT COLOR"/>
+              <ComboBox ItemsSource="{Binding AvailableAccents}"
+                        SelectedItem="{Binding Accent}"
+                        HorizontalAlignment="Stretch"/>
+              <TextBlock Classes="helper"
+                         Text="Applies to primary buttons, the active nav item and status highlights."/>
+            </StackPanel>
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <!-- Logs & diagnostics -->
+      <Border Classes="surface">
+        <StackPanel Spacing="14">
+          <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,4">
+            <Border Classes="section-glyph">
+              <PathIcon Data="{StaticResource Icon.FileText}"/>
+            </Border>
+            <TextBlock Classes="section-title" Text="Logs &amp; diagnostics" Margin="0" VerticalAlignment="Center"/>
+          </StackPanel>
+          <TextBlock Classes="body" Foreground="{DynamicResource DM.Brush.FgSecondary}" TextWrapping="Wrap"
+                     Text="Duplimate writes a structured log of everything it does. Duplicacy itself also writes a per-run transcript. If you ever need to send logs for help, these two folders are what to grab."/>
+
+          <Grid ColumnDefinitions="*,22,*">
+            <StackPanel Grid.Column="0" Spacing="6">
+              <TextBlock Classes="label-caps" Text="KEEP LOGS FOR"/>
+              <Grid ColumnDefinitions="120,Auto">
+                <NumericUpDown Grid.Column="0" Value="{Binding LogRetentionDays}" Minimum="1" Maximum="365"/>
+                <TextBlock Grid.Column="1" Text="days" VerticalAlignment="Center" Margin="10,0,0,0"
+                           Classes="body" Foreground="{DynamicResource DM.Brush.FgSecondary}"/>
+              </Grid>
+              <TextBlock Classes="helper"
+                         Text="Older daily log files are deleted automatically."/>
+            </StackPanel>
+            <StackPanel Grid.Column="2" Spacing="6">
+              <TextBlock Classes="label-caps" Text="DETAIL LEVEL"/>
+              <CheckBox IsChecked="{Binding LogsVerbose}"
+                        Content="Show verbose diagnostic logs"/>
+              <TextBlock Classes="helper"
+                         Text="Off by default — only high-level events are logged. Turn on when debugging a specific problem."/>
+            </StackPanel>
+          </Grid>
+
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Classes="ghost" Command="{Binding OpenAppLogFolderCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Data="{StaticResource Icon.FolderOpen}" Width="14" Height="14"/>
+                <TextBlock Text="Open app log folder" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Button>
+            <Button Classes="ghost" Command="{Binding OpenDuplicacyLogFolderCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Data="{StaticResource Icon.FolderOpen}" Width="14" Height="14"/>
+                <TextBlock Text="Open Duplicacy log folder" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Duplicacy binary -->
+      <Border Classes="surface">
+        <StackPanel Spacing="14">
+          <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,4">
+            <Border Classes="section-glyph">
+              <PathIcon Data="{StaticResource Icon.HardDrive}"/>
+            </Border>
+            <TextBlock Classes="section-title" Text="Duplicacy binary" Margin="0" VerticalAlignment="Center"/>
+          </StackPanel>
+          <TextBlock Classes="body" Foreground="{DynamicResource DM.Brush.FgSecondary}" TextWrapping="Wrap"
+                     Text="Duplimate ships with a copy of Duplicacy by Acrosync. Personal use is free; commercial use requires a paid Duplicacy license. You can point this at a Duplicacy binary you've downloaded yourself — newer CLI version, custom fork, or one you've licensed separately."/>
+          <Grid ColumnDefinitions="*,10,Auto,10,Auto">
+            <TextBox Grid.Column="0"
+                     Text="{Binding DuplicacyBinaryPathOverride}"
+                     Watermark="(using the bundled copy — leave blank to keep using it)"/>
+            <Button Grid.Column="2" Classes="ghost" Command="{Binding BrowseDuplicacyBinaryCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Data="{StaticResource Icon.FolderOpen}" Width="14" Height="14"/>
+                <TextBlock Text="Browse…" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Button>
+            <Button Grid.Column="4" Classes="ghost" Command="{Binding ClearDuplicacyBinaryOverrideCommand}"
+                    IsVisible="{Binding DuplicacyBinaryPathOverride, Converter={x:Static vm:NotEmpty.To}}">
+              <TextBlock Text="Clear"/>
+            </Button>
+          </Grid>
+          <TextBlock Classes="helper"
+                     Text="When set, this binary is used in place of the bundled copy. If the file goes missing, Duplimate falls back to the bundled copy and writes a warning to the log."/>
+        </StackPanel>
+      </Border>
+
+      <!-- Notifications -->
+      <Border Classes="surface">
+        <StackPanel Spacing="14">
+          <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,4">
+            <Border Classes="section-glyph">
+              <PathIcon Data="{StaticResource Icon.Bell}"/>
+            </Border>
+            <TextBlock Classes="section-title" Text="Letting you know" Margin="0" VerticalAlignment="Center"/>
+          </StackPanel>
+          <TextBlock Classes="body" Foreground="{DynamicResource DM.Brush.FgSecondary}" TextWrapping="Wrap"
+                     Text="When a backup finishes — or fails — how should we tell you?"/>
+          <CheckBox IsChecked="{Binding ToastsEnabled}" Content="Show a Windows notification after each run"/>
+          <CheckBox IsChecked="{Binding PlaySound}" Content="Play a short sound"/>
+
+          <Border Classes="rule"/>
+
+          <TextBlock Classes="label-caps" Text="IF YOU’RE USING “DO NOT DISTURB”"/>
+          <TextBlock Classes="body" Foreground="{DynamicResource DM.Brush.FgSecondary}" TextWrapping="Wrap"
+                     Text="Windows hides regular notifications while Focus Assist is on. For anything important, we can pop a small window in front of you instead — it’s easy to dismiss."/>
+          <CheckBox IsChecked="{Binding BypassDndOnFailure}" Content="Always show me if a backup fails (recommended)"/>
+          <CheckBox IsChecked="{Binding BypassDndOnSuccess}" Content="Always show me when a backup succeeds"/>
+        </StackPanel>
+      </Border>
+
+      <!-- Healthchecks.io -->
+      <Border Classes="surface">
+        <StackPanel Spacing="14">
+          <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,4">
+            <Border Classes="section-glyph">
+              <PathIcon Data="{StaticResource Icon.HeartPulse}"/>
+            </Border>
+            <TextBlock Classes="section-title" Text="Watchdog (Healthchecks.io)" Margin="0" VerticalAlignment="Center"/>
+          </StackPanel>
+          <TextBlock Classes="body" Foreground="{DynamicResource DM.Brush.FgSecondary}" TextWrapping="Wrap"
+                     Text="If Duplimate can’t reach you — say your PC is off for a week — Healthchecks.io will email you that your backup hasn’t run. Free for a handful of backups. Paste your API key and we’ll set up the rest automatically."/>
+          <CheckBox IsChecked="{Binding HealthchecksEnabled}" Content="Use Healthchecks.io"/>
+          <Grid ColumnDefinitions="*,22,*">
+            <StackPanel Grid.Column="0" Spacing="6">
+              <TextBlock Classes="label-caps" Text="API KEY"/>
+              <TextBox Text="{Binding HealthchecksApiKey}" PasswordChar="•">
+                <ToolTip.Tip>
+                  <StackPanel MaxWidth="400" Spacing="6">
+                    <TextBlock FontWeight="SemiBold" Text="How to get your Healthchecks.io API key"/>
+                    <TextBlock TextWrapping="Wrap"
+                               Text="1.  Click &quot;Create a free account&quot; below (or sign in at healthchecks.io)."/>
+                    <TextBlock TextWrapping="Wrap"
+                               Text="2.  Open the project you want Duplimate to use (or create a new one — the default project is fine)."/>
+                    <TextBlock TextWrapping="Wrap"
+                               Text="3.  Click the project's &quot;Settings&quot; link (top of the page)."/>
+                    <TextBlock TextWrapping="Wrap"
+                               Text="4.  Find the &quot;API Access&quot; section and click &quot;Create&quot; next to API key."/>
+                    <TextBlock TextWrapping="Wrap"
+                               Text="5.  Copy the regular &quot;API key&quot; (NOT the read-only one — we need write access to create checks for you) and paste it here."/>
+                  </StackPanel>
+                </ToolTip.Tip>
+              </TextBox>
+              <TextBlock Classes="helper"
+                         Text="Find this under your project’s Settings → API Access on healthchecks.io."/>
+            </StackPanel>
+            <StackPanel Grid.Column="2" Spacing="6">
+              <TextBlock Classes="label-caps" Text="BASE URL (SELF-HOSTED ONLY)"/>
+              <TextBox Text="{Binding HealthchecksBaseUrl}"
+                       ToolTip.Tip="Only change this if you self-host Healthchecks. The hosted service at healthchecks.io is the default."/>
+              <TextBlock Classes="helper"
+                         Text="Leave as-is for healthchecks.io."/>
+            </StackPanel>
+          </Grid>
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Classes="ghost" Content="Create a free account" Command="{Binding OpenHealthchecksSignupCommand}"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Email -->
+      <Border Classes="surface">
+        <StackPanel Spacing="14">
+          <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,4">
+            <Border Classes="section-glyph">
+              <PathIcon Data="{StaticResource Icon.Mail}"/>
+            </Border>
+            <TextBlock Classes="section-title" Text="Email me when things happen" Margin="0" VerticalAlignment="Center"/>
+          </StackPanel>
+          <TextBlock Classes="body" Foreground="{DynamicResource DM.Brush.FgSecondary}" TextWrapping="Wrap"
+                     Text="Optional. We recommend Resend — free for 3,000 emails a month, just paste an API key. Mailgun SMTP is here too if you already use it."/>
+
+          <Grid ColumnDefinitions="*,22,*">
+            <StackPanel Grid.Column="0" Spacing="6">
+              <TextBlock Classes="label-caps" Text="PROVIDER"/>
+              <!-- Item template surfaces the "(recommended)" hint on
+                   Resend so the choice is one less thing to research
+                   for a user who hasn't picked a transactional-email
+                   provider before. -->
+              <ComboBox ItemsSource="{Binding AvailableMailProviders}"
+                        SelectedItem="{Binding MailProvider}">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding Converter={x:Static vm:MailProviderDisplay.To}}"/>
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+            </StackPanel>
+            <!-- FROM is hidden for Mailgun until the user has typed a
+                 sending domain — Mailgun's API URL embeds the domain
+                 and there's nothing useful to type before that.
+                 IsMailgunFromVisible falls back to true for Resend
+                 because Resend has a fixed default sender. -->
+            <StackPanel Grid.Column="2" Spacing="6">
+              <StackPanel.IsVisible>
+                <MultiBinding Converter="{x:Static conv:BoolConverters.And}">
+                  <Binding Path="IsMailEnabled"/>
+                  <!-- Mailgun-specific gating: hide FROM until domain is set. -->
+                  <MultiBinding Converter="{x:Static conv:BoolConverters.Or}">
+                    <Binding Path="IsResendProvider"/>
+                    <Binding Path="IsMailgunFromVisible"/>
+                  </MultiBinding>
+                </MultiBinding>
+              </StackPanel.IsVisible>
+              <TextBlock Classes="label-caps" Text="FROM"/>
+              <!-- Sandbox: read-only and pre-populated with duplimate@<sandbox>;
+                   any other sender is rejected by Mailgun anyway.
+                   Resend with default onboarding@resend.dev is editable
+                   but the helper line tells you not to. -->
+              <TextBox Text="{Binding MailFrom}"
+                       IsReadOnly="{Binding IsMailgunSandbox}"
+                       Watermark="Your name &lt;you@domain.com&gt;"/>
+              <!-- Resend: verified-domain note. -->
+              <TextBlock Classes="helper"
+                         IsVisible="{Binding IsResendProvider}"
+                         Text="Resend won't accept any other sender until you verify a domain you own (Resend dashboard → Domains)."/>
+              <!-- Mailgun sandbox: locked sender. -->
+              <TextBlock Classes="helper"
+                         IsVisible="{Binding IsMailgunSandbox}"
+                         Text="Sandbox accounts can only send from this fixed address. To use a custom sender, verify a real domain on your Mailgun account first."/>
+              <!-- Mailgun custom domain: tell user what's typically valid. -->
+              <TextBlock Classes="helper">
+                <TextBlock.IsVisible>
+                  <MultiBinding Converter="{x:Static conv:BoolConverters.And}">
+                    <Binding Path="IsMailgunFromVisible"/>
+                    <Binding Path="!IsMailgunSandbox"/>
+                    <Binding Path="!IsResendProvider"/>
+                  </MultiBinding>
+                </TextBlock.IsVisible>
+                <Run Text="Use any sender on the verified domain you entered, e.g. "/>
+                <Run Text="backups@yourdomain.com" FontWeight="SemiBold"/>
+                <Run Text=". Mailgun rejects senders on unverified domains."/>
+              </TextBlock>
+            </StackPanel>
+          </Grid>
+
+          <StackPanel Spacing="6"
+                      IsVisible="{Binding IsMailEnabled}">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Grid.Column="0" Classes="label-caps" Text="TO (UP TO 5)"/>
+              <TextBlock Grid.Column="1" Classes="dim" FontSize="12"
+                         VerticalAlignment="Center"
+                         Text="{Binding MailToCount, StringFormat='{}{0} of 5'}"/>
+            </Grid>
+            <!-- Pills: one per recipient with an X to remove. Wraps if
+                 there are several. -->
+            <ItemsControl ItemsSource="{Binding MailToList}"
+                          IsVisible="{Binding MailToCount}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel/>
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Background="{DynamicResource DM.Brush.AccentTint}"
+                          CornerRadius="14" Padding="10,4,4,4" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding}" VerticalAlignment="Center"
+                                 Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+                      <Button Classes="row-action"
+                              Padding="6,2" Width="22" Height="22"
+                              FontSize="12" Content="✕"
+                              ToolTip.Tip="Remove this address"
+                              Command="{Binding $parent[ItemsControl].((vm:SettingsViewModel)DataContext).RemoveRecipientCommand}"
+                              CommandParameter="{Binding}"/>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <!-- Entry row. Enter or click ADD to commit. Disabled when
+                 already at the cap. -->
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBox Grid.Column="0"
+                       Text="{Binding MailToInput}"
+                       Watermark="you@example.com"
+                       IsEnabled="{Binding CanAddMoreRecipients}">
+                <TextBox.KeyBindings>
+                  <KeyBinding Gesture="Enter" Command="{Binding AddRecipientCommand}"/>
+                </TextBox.KeyBindings>
+              </TextBox>
+              <Button Grid.Column="1" Classes="ghost" Content="Add" Margin="8,0,0,0"
+                      Command="{Binding AddRecipientCommand}"
+                      IsEnabled="{Binding CanAddMoreRecipients}"/>
+            </Grid>
+          </StackPanel>
+
+          <StackPanel IsVisible="{Binding IsMailEnabled}" Spacing="6">
+            <TextBlock Classes="label-caps" Text="WHEN TO SEND"/>
+            <StackPanel Orientation="Horizontal" Spacing="20">
+              <CheckBox IsChecked="{Binding MailOnSuccess}" Content="Success"/>
+              <CheckBox IsChecked="{Binding MailOnFailure}" Content="Failure or warning"/>
+              <CheckBox IsChecked="{Binding MailOnSkip}"   Content="Skipped (e.g. drive missing)"/>
+            </StackPanel>
+          </StackPanel>
+
+          <Border Classes="rule" IsVisible="{Binding IsMailEnabled}"/>
+
+          <!-- Resend block -->
+          <StackPanel Spacing="10"
+                      IsVisible="{Binding MailProvider, Converter={x:Static vm:Eq.To}, ConverterParameter=Resend}">
+            <TextBlock Classes="label-caps" Text="RESEND API KEY"/>
+            <TextBox Text="{Binding ResendApiKey}" PasswordChar="•"
+                     Watermark="re_xxxxxxxxxxxxxxxxxxxx">
+              <ToolTip.Tip>
+                <StackPanel MaxWidth="380" Spacing="6">
+                  <TextBlock FontWeight="SemiBold" Text="How to get a Resend API key"/>
+                  <TextBlock TextWrapping="Wrap"
+                             Text="1.  Click &quot;Create a free account&quot; below (or sign in at resend.com)."/>
+                  <TextBlock TextWrapping="Wrap"
+                             Text="2.  In the Resend dashboard, click &quot;API Keys&quot; in the left sidebar."/>
+                  <TextBlock TextWrapping="Wrap"
+                             Text="3.  Click &quot;Create API Key&quot;, name it (e.g. Duplimate), and choose &quot;Sending access&quot;."/>
+                  <TextBlock TextWrapping="Wrap"
+                             Text="4.  Copy the key (starts with re_) and paste it here. Resend shows it only once — save it elsewhere too if you might need it again."/>
+                </StackPanel>
+              </ToolTip.Tip>
+            </TextBox>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Classes="ghost" Content="Create a free account" Command="{Binding OpenResendSignupCommand}"/>
+            </StackPanel>
+          </StackPanel>
+
+          <!-- Mailgun block -->
+          <StackPanel Spacing="10"
+                      IsVisible="{Binding MailProvider, Converter={x:Static vm:Eq.To}, ConverterParameter=Mailgun}">
+            <TextBlock Classes="helper" Margin="0"
+                       Text="You need a verified sending domain on your Mailgun account plus a project API key."/>
+            <!-- Sandbox-only callout. Mailgun doesn't expose an API for
+                 managing the authorized-recipient list (it's a dashboard-
+                 only feature), so we point the user at where to add
+                 recipients. -->
+            <Border Classes="callout" IsVisible="{Binding IsMailgunSandbox}">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="body" FontWeight="SemiBold"
+                           Text="You're on a Mailgun sandbox domain."
+                           Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+                <TextBlock Classes="body" TextWrapping="Wrap"
+                           Foreground="{DynamicResource DM.Brush.FgSecondary}"
+                           Text="Sandbox accounts can only send to addresses you've explicitly added as &quot;authorized recipients&quot; (max 5). Each recipient must click a verification link before they'll receive mail. Add them in your Mailgun dashboard → Sending → Domain settings → Authorized Recipients."/>
+              </StackPanel>
+            </Border>
+            <Grid ColumnDefinitions="*,22,160">
+              <StackPanel Grid.Column="0" Spacing="6">
+                <TextBlock Classes="label-caps" Text="SENDING DOMAIN"/>
+                <TextBox Text="{Binding MailgunDomain}" Watermark="mg.yourdomain.com"
+                         ToolTip.Tip="The verified domain on your Mailgun account (e.g. mg.example.com). Mailgun won't accept sends from an unverified domain — sandbox accounts only allow sending to addresses you've explicitly added as &quot;authorized recipients&quot;."/>
+              </StackPanel>
+              <StackPanel Grid.Column="2" Spacing="6">
+                <TextBlock Classes="label-caps" Text="REGION"/>
+                <ComboBox ItemsSource="{Binding AvailableMailgunRegions}"
+                          SelectedItem="{Binding MailgunRegion}"
+                          HorizontalAlignment="Stretch"
+                          ToolTip.Tip="US (api.mailgun.net) for accounts created on the global site; EU (api.eu.mailgun.net) for accounts created on the EU site. Picking the wrong one returns &quot;domain not found&quot;."/>
+              </StackPanel>
+            </Grid>
+            <StackPanel Spacing="6">
+              <TextBlock Classes="label-caps" Text="MAILGUN API KEY"/>
+              <TextBox Text="{Binding MailgunApiKey}" PasswordChar="•"
+                       Watermark="Private API key from Mailgun → API security">
+                <ToolTip.Tip>
+                  <StackPanel MaxWidth="400" Spacing="6">
+                    <TextBlock FontWeight="SemiBold" Text="How to get a Mailgun API key"/>
+                    <TextBlock TextWrapping="Wrap"
+                               Text="1.  Sign in at mailgun.com (or sign up for a free trial)."/>
+                    <TextBlock TextWrapping="Wrap"
+                               Text="2.  In the dashboard, open the dropdown menu under your account name (top-right) and click &quot;API security&quot;."/>
+                    <TextBlock TextWrapping="Wrap"
+                               Text="3.  Click &quot;Add new key&quot; (or copy an existing &quot;Mailgun API key&quot; — NOT the public validation key)."/>
+                    <TextBlock TextWrapping="Wrap"
+                               Text="4.  Paste the key here. Duplimate uses it to POST to Mailgun's /messages API directly — no SMTP credentials needed."/>
+                    <TextBlock TextWrapping="Wrap"
+                               Text="Note: Mailgun also requires a verified sending domain (above). For trial accounts, use the auto-created sandbox domain and add your inbox as an authorized recipient."/>
+                  </StackPanel>
+                </ToolTip.Tip>
+              </TextBox>
+            </StackPanel>
+          </StackPanel>
+
+          <!-- Send-test row, shared across providers. Visible whenever
+               the user has a provider selected — they can verify their
+               key + recipient list works before saving. The status
+               banner below is colored red on failure (TestEmailFailed)
+               so a typo or rejected key is impossible to miss. -->
+          <StackPanel Spacing="6" IsVisible="{Binding IsMailEnabled}" Margin="0,4,0,0">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Classes="ghost" Content="Send test email"
+                      Command="{Binding SendTestEmailCommand}"
+                      IsEnabled="{Binding !TestEmailBusy}"/>
+              <TextBlock Classes="dim" VerticalAlignment="Center"
+                         Text="Sends to your TO addresses using the values you've typed (no Save needed)."/>
+            </StackPanel>
+            <!-- Status: success / in-flight rendered as plain helper
+                 text. Failure rendered as a single error callout (red
+                 tint + bold provider error + plain follow-up) so the
+                 actual error message is visible-as-an-error rather
+                 than two visually-disconnected lines. -->
+            <TextBlock Classes="helper"
+                       IsVisible="{Binding TestEmailStatus, Converter={x:Static vm:NotEmpty.To}}"
+                       Foreground="{DynamicResource DM.Brush.FgSecondary}"
+                       Text="{Binding TestEmailStatus}">
+              <TextBlock.IsVisible>
+                <MultiBinding Converter="{x:Static vm:BoolAnd.To}">
+                  <Binding Path="TestEmailStatus" Converter="{x:Static vm:NotEmpty.To}"/>
+                  <Binding Path="!TestEmailFailed"/>
+                </MultiBinding>
+              </TextBlock.IsVisible>
+            </TextBlock>
+            <Border IsVisible="{Binding TestEmailFailed}"
+                    Background="{DynamicResource DM.Brush.DangerTint}"
+                    CornerRadius="8" Padding="12,10">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="helper" FontWeight="SemiBold" TextWrapping="Wrap"
+                           Foreground="{DynamicResource DM.Brush.DangerTintFg}"
+                           Text="{Binding TestEmailStatus}"/>
+                <TextBlock Classes="helper" TextWrapping="Wrap"
+                           Foreground="{DynamicResource DM.Brush.DangerTintFg}"
+                           Text="The provider rejected the send — fix the error above and click again."/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+        </StackPanel>
+      </Border>
+
+      <!-- Import from existing Duplicacy -->
+      <Border Classes="surface">
+        <StackPanel Spacing="12">
+          <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,4">
+            <Border Classes="section-glyph">
+              <PathIcon Data="{StaticResource Icon.FolderOpen}"/>
+            </Border>
+            <TextBlock Classes="section-title" Text="Import from existing Duplicacy" Margin="0" VerticalAlignment="Center"/>
+          </StackPanel>
+          <TextBlock Classes="body" Foreground="{DynamicResource DM.Brush.FgSecondary}" TextWrapping="Wrap"
+                     Text="Already using Duplicacy? Point at either (a) the folder that contains your .duplicacy directory, or (b) a parent folder containing several such repos (duplicacy-util layout). We read .duplicacy/preferences for storage + repository, any .duplicacy/filters file, and per-repo yaml settings if present. Your existing storage is left untouched. Cloud tokens are not imported — Duplimate will prompt you to re-authenticate the first time it talks to each destination."/>
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Classes="ghost" Command="{Binding ImportLegacyCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Data="{StaticResource Icon.FolderOpen}" Width="14" Height="14"/>
+                <TextBlock Text="Import existing backups" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Button>
+          </StackPanel>
+          <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap"
+                     Text="{Binding MigrationStatus}"
+                     IsVisible="{Binding MigrationStatus, Converter={x:Static vm:NotEmpty.To}}"/>
+        </StackPanel>
+      </Border>
+
+      <!-- Save -->
+      <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+        <Button Classes="primary" Content="Save settings" Command="{Binding SaveCommand}"/>
+        <!-- Visible feedback that the click did something. "Saved."
+             on success, "Save failed: ..." on exception. Empty until
+             the first save attempt. -->
+        <TextBlock Classes="dim" FontSize="13" VerticalAlignment="Center"
+                   TextWrapping="Wrap"
+                   Text="{Binding SaveStatus}"
+                   IsVisible="{Binding SaveStatus, Converter={x:Static vm:NotEmpty.To}}"/>
+      </StackPanel>
+
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

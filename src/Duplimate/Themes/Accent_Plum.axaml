@@ -1,0 +1,22 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Light">
+      <!-- Hover = ~8% darker, Deep = ~25% darker. -->
+      <SolidColorBrush x:Key="DM.Brush.Accent"          Color="#FF7C3AED"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentHover"     Color="#FF6F33D5"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentDeep"      Color="#FF5D2BB1"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTint"      Color="#1A7C3AED"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTintHover" Color="#267C3AED"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTintFg"    Color="#FF5D2BB1"/>
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="DM.Brush.Accent"          Color="#FFA78BFA"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentHover"     Color="#FFC4B5FD"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentDeep"      Color="#FF8B5CF6"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTint"      Color="#33A78BFA"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTintHover" Color="#55A78BFA"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTintFg"    Color="#FFC4B5FD"/> <!-- violet-300 -->
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

@@ -1,0 +1,63 @@
+<Project>
+
+  <!--
+    Auto-fetches the host-platform Duplicacy CLI into Assets/ before
+    Avalonia collects embedded resources. Runs exactly once per clean
+    checkout: if the platform-specific asset already exists, the
+    target no-ops.
+
+    Asset naming, by host:
+      • Windows  → Assets/duplicacy.exe   (Source: duplicacy_win_*  )
+      • macOS    → Assets/duplicacy        (Source: duplicacy_osx_*  )
+      • Linux    → Assets/duplicacy        (Source: duplicacy_linux_*)
+
+    Cross-host fetch:
+      • Windows builds invoke fetch-duplicacy.ps1 (PowerShell 5.1+).
+      • Unix builds invoke fetch-duplicacy.sh (bash + curl + jq, all
+        baseline on macOS / Linux hosts).
+
+    Escape hatches:
+      • Set -p:SkipDuplicacyDownload=true to build offline.
+      • Drop your own duplicacy(.exe) into Assets/ manually.
+  -->
+
+  <PropertyGroup>
+    <SkipDuplicacyDownload Condition="'$(SkipDuplicacyDownload)' == ''">false</SkipDuplicacyDownload>
+
+    <!--
+      Pick the host's binary name + fetch script. We branch on
+      OS()==Windows_NT vs Unix because the macOS and Linux paths share
+      a script and asset name; only the Windows variant needs the .exe
+      suffix.
+    -->
+    <DuplicacyAssetName Condition="'$(OS)' == 'Windows_NT'">duplicacy.exe</DuplicacyAssetName>
+    <DuplicacyAssetName Condition="'$(OS)' != 'Windows_NT'">duplicacy</DuplicacyAssetName>
+    <DuplicacyAssetPath>$(MSBuildThisFileDirectory)Assets\$(DuplicacyAssetName)</DuplicacyAssetPath>
+  </PropertyGroup>
+
+  <Target Name="EnsureDuplicacyBinary"
+          BeforeTargets="GenerateAvaloniaResources;PrepareResources;BeforeBuild"
+          Condition="!Exists('$(DuplicacyAssetPath)') and '$(SkipDuplicacyDownload)' != 'true'">
+
+    <Message Importance="high"
+             Text="[Duplimate] $(DuplicacyAssetName) not found — fetching latest from GitHub releases..."/>
+
+    <!-- Windows host: PowerShell 5.1 ships with every Windows install. -->
+    <Exec Condition="'$(OS)' == 'Windows_NT'"
+          Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)fetch-duplicacy.ps1&quot; -OutPath &quot;$(DuplicacyAssetPath)&quot;"
+          IgnoreExitCode="false"
+          ContinueOnError="false"/>
+
+    <!-- macOS / Linux host: bash + curl + jq. The shell script auto-
+         detects whether the host is osx or linux and picks the
+         matching upstream asset. -->
+    <Exec Condition="'$(OS)' != 'Windows_NT'"
+          Command="bash &quot;$(MSBuildThisFileDirectory)fetch-duplicacy.sh&quot; &quot;$(DuplicacyAssetPath)&quot;"
+          IgnoreExitCode="false"
+          ContinueOnError="false"/>
+
+    <Error Condition="!Exists('$(DuplicacyAssetPath)')"
+           Text="Failed to fetch $(DuplicacyAssetName). Either set -p:SkipDuplicacyDownload=true, or manually download a matching duplicacy_(win|osx|linux)_x64_*.exe from https://github.com/gilbertchen/duplicacy/releases/latest and save it to $(DuplicacyAssetPath)."/>
+  </Target>
+
+</Project>

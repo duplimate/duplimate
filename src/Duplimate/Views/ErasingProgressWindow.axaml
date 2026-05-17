@@ -1,0 +1,38 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Duplimate.Views.ErasingProgressWindow"
+        Title="Erasing — Duplimate"
+        Width="520" SizeToContent="Height"
+        CanResize="False"
+        Background="{DynamicResource DM.Brush.BgBase}"
+        WindowStartupLocation="CenterOwner">
+
+  <StackPanel Margin="34,32,34,28" Spacing="18">
+    <StackPanel Spacing="6">
+      <TextBlock x:Name="TitleBlock" Classes="card-title"/>
+      <!-- One-line subtitle reminding the user this can take a while
+           and shouldn't be interrupted. The dialog is intentionally
+           non-cancellable: aborting mid-erase against a Duplicacy
+           storage can leave dangling chunk fossils that confuse the
+           next prune pass. -->
+      <TextBlock Classes="dim" TextWrapping="Wrap"
+                 Text="This may take a few minutes for large or remote storage. Please don't close the app while it runs."/>
+    </StackPanel>
+
+    <ProgressBar x:Name="Progress"
+                 IsIndeterminate="True"
+                 Height="6"
+                 Foreground="{DynamicResource DM.Brush.Accent}"
+                 Background="{DynamicResource DM.Brush.AccentTint}"/>
+
+    <!-- Live status line, e.g. "Removing snapshots/multi-2-d4krr4…"
+         or "Asked Duplicacy to drop 12 of 248 chunks". Updated by
+         the IProgress<string> callback the cleaner emits on every
+         meaningful step. -->
+    <TextBlock x:Name="StatusBlock" Classes="body" TextWrapping="Wrap"
+               Foreground="{DynamicResource DM.Brush.FgSecondary}"
+               FontFamily="{DynamicResource DM.Font.Mono}"
+               FontSize="12"
+               MinHeight="18"/>
+  </StackPanel>
+</Window>

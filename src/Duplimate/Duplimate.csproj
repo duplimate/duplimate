@@ -1,0 +1,145 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Cross-platform Avalonia desktop app.
+
+    Multi-targets two TFMs:
+      • net10.0-windows10.0.19041.0 — full Win32 stack: COM-based Task
+        Scheduler, DPAPI secrets, WinRT metered-network probe, Explorer
+        shell-extension registry verbs, taskbar flash, app manifest +
+        .ico icon.
+      • net10.0                     — cross-platform fallback for macOS
+        and Linux. Same UI; Windows-specific services route through
+        per-platform implementations (launchd / systemd schedulers, file-
+        backed secrets vault, no-op shell integration / metered probe).
+
+    Files under Services/Platform/Windows/ compile only on the Windows
+    TFM (Compile Remove below). Cross-platform call sites use the
+    interfaces defined in Services/Platform/.
+  -->
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFrameworks>net10.0-windows10.0.19041.0;net10.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <RootNamespace>Duplimate</RootNamespace>
+    <AssemblyName>Duplimate</AssemblyName>
+    <Version>1.0.0</Version>
+    <Company>Duplimate</Company>
+    <Product>Duplimate</Product>
+    <Description>A friendly cross-platform GUI for Duplicacy backups.</Description>
+    <Copyright>Copyright (c) 2026 Erwin Mayer</Copyright>
+
+    <!--
+      IsWindowsBuild: true when targeting the Windows TFM. Used below
+      to gate Windows-only properties, packages, files, and targets so a
+      `dotnet build -f net10.0` on macOS/Linux produces a clean
+      cross-platform binary with no Win32-only references.
+    -->
+    <IsWindowsBuild Condition="$(TargetFramework.Contains('-windows'))">true</IsWindowsBuild>
+    <IsWindowsBuild Condition="'$(IsWindowsBuild)' == ''">false</IsWindowsBuild>
+
+    <!--
+      CA1416 — "this API is unsupported on platform X". We dispatch
+      between platform-specific code paths via runtime guards
+      (PlatformInfo.IsWindows / IsMacOS / IsLinux), which the analyzer
+      can't trace across the helper. The Windows-only files under
+      Services/Platform/Windows/ are already excluded from the
+      cross-platform TFM via Compile Remove, so the warnings fire on
+      callsite reachability heuristics, not actual runtime risk.
+      Suppress globally; correctness is enforced by the guards.
+    -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsWindowsBuild)' == 'true'">
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\Duplimate.ico</ApplicationIcon>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <!-- Default RID for a Release publish only when the user didn't pass
+       -r explicitly. Each TFM picks its own platform default; -r osx-arm64
+       / -r linux-x64 / -r win-x64 still overrides on the command line. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release' and '$(RuntimeIdentifier)' == '' and '$(IsWindowsBuild)' == 'true'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Tests reach into a few internals (Redact, ExtractSnapshotIds) to
+         exercise paths that don't make sense as public API. -->
+    <InternalsVisibleTo Include="Duplimate.Tests" />
+  </ItemGroup>
+
+  <!-- Cross-platform packages — Avalonia, MVVM, Serilog. -->
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Diagnostics" Version="11.2.3" Condition="'$(Configuration)' == 'Debug'" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Serilog" Version="4.2.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
+    <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+    <PackageReference Include="Serilog.Enrichers.Process" Version="3.0.0" />
+    <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
+
+    <!-- Override the Tmds.DBus.Protocol version pulled in transitively
+         by Avalonia (it ships with 0.20.0). 0.20.x is flagged by
+         GHSA-xrw6-gwf8-vvr9 (CVE-2026-39959, high severity). The fix
+         landed in 0.21.3 (backport) and the 0.92.0 main lineage; we
+         force a recent patched version explicitly so `dotnet build`
+         stops emitting the NU1903 audit warning. The package is only
+         exercised on Linux at runtime (Avalonia.X11's DBus bridge);
+         Windows / macOS builds load it but never call into it. -->
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.93.0" />
+  </ItemGroup>
+
+  <!-- Windows-only packages: COM Task Scheduler, DPAPI, SystemSounds. -->
+  <ItemGroup Condition="'$(IsWindowsBuild)' == 'true'">
+    <PackageReference Include="TaskScheduler" Version="2.12.1" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
+    <PackageReference Include="System.Windows.Extensions" Version="9.0.0" />
+  </ItemGroup>
+
+  <!-- Windows-only source files. Skipped on the cross-platform TFM so
+       Win32 P/Invokes, registry calls, and COM interop never reach the
+       compiler under a Linux/macOS build. -->
+  <ItemGroup Condition="'$(IsWindowsBuild)' != 'true'">
+    <Compile Remove="Services\Platform\Windows\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- duplicacy(.exe) lives under Assets/ at build time (gitignored).
+         FetchDuplicacy.targets downloads it from gilbertchen/duplicacy
+         releases for the current host platform if it's missing; set
+         -p:SkipDuplicacyDownload=true to build offline. -->
+  </ItemGroup>
+
+  <Import Project="FetchDuplicacy.targets"/>
+  <!-- The fallback "missing main exe" stub is Windows-only — launchd /
+       systemd handle missing executables by emitting a unit-level error
+       to the system log, which the app picks up on next launch via the
+       same exe-path-changed sentinel mechanism. -->
+  <Import Project="BuildStub.targets" Condition="'$(IsWindowsBuild)' == 'true'"/>
+
+</Project>

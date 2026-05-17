@@ -1,0 +1,40 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Duplimate.Views.DestructiveConfirmWindow"
+        Title="Confirm — Duplimate"
+        Width="540" SizeToContent="Height"
+        CanResize="False"
+        Background="{DynamicResource DM.Brush.BgBase}"
+        WindowStartupLocation="CenterOwner">
+
+  <StackPanel Margin="34,32,34,28" Spacing="18">
+    <StackPanel Spacing="6">
+      <TextBlock x:Name="TitleBlock" Classes="card-title"/>
+      <!-- Subtitle uses the default body foreground (FgPrimary) — this
+           prose tells the user what they're about to destroy, so it's
+           the operative content of the dialog, not muted metadata. -->
+      <TextBlock x:Name="SubtitleBlock" Classes="body" TextWrapping="Wrap"/>
+    </StackPanel>
+
+    <!-- Type-confirm row. Hidden in informational mode (caller passed
+         no confirmString) — those dialogs are read-and-acknowledge,
+         making the user type OK just to dismiss a warning is awful
+         UX. The rule above is also hidden in info mode for the same
+         reason (no input section to separate). -->
+    <Border Classes="rule" x:Name="ConfirmRule"/>
+
+    <StackPanel Spacing="6" x:Name="ConfirmInputBlock">
+      <TextBlock Classes="label-caps" x:Name="PromptLabel"/>
+      <TextBox x:Name="ConfirmInput" FontFamily="{DynamicResource DM.Font.Mono}"/>
+    </StackPanel>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+      <Button Classes="ghost" Content="Cancel" Click="OnCancel" x:Name="CancelButton"/>
+      <!-- Confirm button label: "Proceed" matches the prompt text
+           ("TYPE OK TO CONFIRM" → "Proceed"). In informational mode
+           (no typing required) the label is "OK" and the styling is
+           ghost (not danger) — nothing destructive happens on click. -->
+      <Button Classes="danger" Content="Proceed" Click="OnProceed" x:Name="ProceedButton"/>
+    </StackPanel>
+  </StackPanel>
+</Window>

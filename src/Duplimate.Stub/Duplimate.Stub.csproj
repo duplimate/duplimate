@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Tiny "missing main exe" stub. Lives at
+    %LOCALAPPDATA%\Programs\Duplimate\Duplimate-stub.exe and is
+    invoked by the cmd.exe wrapper inside every scheduled task as a
+    fallback when the user's main Duplimate.exe isn't where the
+    schedule expects it (typically: user moved or deleted the download).
+
+    Does ONE thing: pop a Windows MessageBox warning the user that the
+    app file moved, then write a flag file the main app reads on its
+    next launch. Native AOT keeps the binary ~3-5MB so embedding it in
+    the main app's Avalonia resources is acceptable.
+  -->
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Duplimate.Stub</RootNamespace>
+    <AssemblyName>Duplimate-stub</AssemblyName>
+    <Version>1.0.0</Version>
+    <Company>Duplimate</Company>
+    <Product>Duplimate</Product>
+    <Description>Fallback stub for Duplimate scheduled tasks.</Description>
+    <Copyright>Copyright (c) 2026 Erwin Mayer</Copyright>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+
+    <!-- Trimmed self-contained single-file (~10MB) instead of AOT,
+         because AOT needs the Visual C++ build tools which not every
+         developer has installed. Trimmed builds in ~5s with no extra
+         tooling. The stub uses only P/Invoke + System.IO so there's
+         nothing for the trimmer to break. -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <DebugType>none</DebugType>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+</Project>

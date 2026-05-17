@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Duplimate — Duplicacy Backups Made Easy</title>
+<meta name="description" content="A friendly desktop GUI for Duplicacy. Encrypted, deduplicated backups to Dropbox, OneDrive, Google Drive, S3, or your own drive. Free and open source under MIT.">
+<meta property="og:title" content="Duplimate — Duplicacy Backups Made Easy">
+<meta property="og:description" content="A friendly desktop GUI for Duplicacy. Encrypted, deduplicated backups to Dropbox, OneDrive, Google Drive, S3, or your own drive.">
+<meta property="og:image" content="https://duplimate.github.io/screenshots/01-backups-running.png">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0061FF">
+<link rel="icon" type="image/png" href="favicon.png">
+<style>
+:root {
+    --bg:           #FBF8F2;
+    --bg-surface:   #FFFFFF;
+    --bg-elevated:  #FDFCF8;
+    --fg:           #1E1B16;
+    --fg-secondary: #5C5750;
+    --fg-dim:       #8C857A;
+    --accent:       #0061FF;
+    --accent-tint:  #E8F0FF;
+    --accent-soft:  #DCE9FF;
+    --border:       #E6E1D6;
+    --border-strong:#D4CCBC;
+    --ok:           #2D7A3B;
+    --ok-tint:      #E7F4EA;
+}
+
+* { box-sizing: border-box; }
+html, body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--fg);
+    background: var(--bg);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.container {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+.container-wide {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* ─── Hero ────────────────────────────────────────────────────────── */
+.hero {
+    padding: 80px 0 48px;
+    text-align: center;
+    background: radial-gradient(ellipse at top, #FFF 0%, var(--bg) 70%);
+    border-bottom: 1px solid var(--border);
+}
+.hero h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: clamp(40px, 6vw, 64px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 24px 0 16px;
+}
+.hero .tagline {
+    font-size: 19px;
+    color: var(--fg-secondary);
+    max-width: 640px;
+    margin: 0 auto 36px;
+}
+.hero-logo {
+    width: 88px;
+    height: 88px;
+    border-radius: 22px;
+    background: var(--accent);
+    color: #FFF;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    box-shadow: 0 12px 32px -8px rgba(0, 97, 255, 0.4);
+}
+.hero-logo svg { width: 56px; height: 56px; }
+
+.cta-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: 15px;
+    transition: all 120ms ease;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+.btn-primary {
+    background: var(--accent);
+    color: #FFF;
+    border-color: var(--accent);
+}
+.btn-primary:hover {
+    background: #004FCC;
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px -4px rgba(0, 97, 255, 0.4);
+}
+.btn-secondary {
+    background: transparent;
+    color: var(--fg);
+    border-color: var(--border-strong);
+}
+.btn-secondary:hover {
+    background: var(--bg-surface);
+    text-decoration: none;
+}
+
+.pill-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 28px;
+}
+.pill {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    color: var(--fg-secondary);
+}
+
+/* ─── Blueish "Note" callout (replaces the warn-amber one) ────────── */
+.notice {
+    margin: 28px auto 0;
+    max-width: 760px;
+    padding: 16px 20px;
+    background: var(--accent-tint);
+    border: 1px solid var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    font-size: 14px;
+    color: #16306E;
+    text-align: left;
+    line-height: 1.6;
+}
+.notice b { color: #0B2152; }
+.notice .note-tag {
+    display: inline-block;
+    font-weight: 600;
+    color: var(--accent);
+    margin-right: 6px;
+    letter-spacing: 0.02em;
+}
+
+/* ─── Sections ────────────────────────────────────────────────────── */
+section {
+    padding: 72px 0;
+}
+section + section { border-top: 1px solid var(--border); }
+section h2 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 34px;
+    letter-spacing: -0.015em;
+    margin: 0 0 10px;
+}
+section .lede {
+    color: var(--fg-secondary);
+    font-size: 17px;
+    max-width: 660px;
+    margin: 0 0 40px;
+}
+
+/* ─── Features ────────────────────────────────────────────────────── */
+.features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 24px;
+}
+.feature {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 22px 20px;
+}
+.feature-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: var(--accent-tint);
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+.feature-icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.feature h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 6px;
+}
+.feature p {
+    font-size: 14px;
+    color: var(--fg-secondary);
+    margin: 0;
+    line-height: 1.55;
+}
+
+/* ─── Tutorial steps — vertical, large image per step ─────────────── */
+.steps {
+    display: flex;
+    flex-direction: column;
+    gap: 60px;
+    margin-top: 24px;
+}
+.step {
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: 24px;
+    align-items: start;
+}
+.step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #FFF;
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 28px;
+    flex-shrink: 0;
+}
+.step-num.muted {
+    background: var(--accent-tint);
+    color: var(--accent);
+}
+.step-body h3 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 24px;
+    letter-spacing: -0.01em;
+    margin: 6px 0 8px;
+}
+.step-body p {
+    color: var(--fg-secondary);
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0 0 18px;
+    max-width: 720px;
+}
+.step-body p + p { margin-top: -6px; }
+.step-body img {
+    display: block;
+    width: 80%;
+    height: auto;
+    margin: 0 auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px -12px rgba(30, 27, 22, 0.18);
+}
+
+/* "Branch" boxes inside step 2 — local vs cloud destination */
+.branch {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 26px 24px;
+    margin: 18px 0 0;
+}
+.branch + .branch { margin-top: 18px; }
+.branch h4 {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.branch h4 .tag {
+    display: inline-block;
+    background: var(--accent-tint);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+.branch p {
+    color: var(--fg-secondary);
+    font-size: 15px;
+    line-height: 1.55;
+    margin: 0 0 16px;
+}
+.branch img {
+    display: block;
+    width: 80%;
+    height: auto;
+    margin: 0 auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+/* Milestone step (e.g. "Watch the first run") — no number, lighter */
+.milestone {
+    grid-template-columns: 1fr;
+}
+.milestone .step-body { padding: 0; }
+.milestone .step-body h3 {
+    font-size: 22px;
+    color: var(--accent);
+}
+
+@media (max-width: 760px) {
+    .step { grid-template-columns: 1fr; gap: 12px; }
+    .step-num { width: 48px; height: 48px; font-size: 22px; }
+    .step-body h3 { font-size: 20px; }
+}
+
+/* ─── Advanced section — compact 2-col grid ─────────────────────── */
+.advanced-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px;
+    margin-top: 24px;
+}
+@media (max-width: 760px) {
+    .advanced-grid { grid-template-columns: 1fr; }
+}
+.adv {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.adv img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-bottom: 1px solid var(--border);
+}
+.adv-caption {
+    padding: 16px 20px 18px;
+}
+.adv-caption h4 {
+    margin: 0 0 5px;
+    font-size: 15px;
+    font-weight: 600;
+}
+.adv-caption p {
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--fg-secondary);
+    line-height: 1.5;
+}
+
+/* Section sub-heading inside the tutorial (e.g. "Set up your first backup") */
+.tutorial-h {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 26px;
+    letter-spacing: -0.01em;
+    margin: 8px 0 0;
+}
+.tutorial-h.second { margin-top: 80px; }
+
+/* The "Get started" intro callout — make the philosophy land */
+.tldr {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 0 0 36px;
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--fg);
+}
+.tldr strong { color: var(--accent); }
+
+/* ─── Footer ──────────────────────────────────────────────────────── */
+footer {
+    padding: 48px 0;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--fg-dim);
+    font-size: 14px;
+}
+footer a { color: var(--fg-secondary); }
+footer .powered {
+    margin-top: 12px;
+    font-size: 12px;
+}
+
+@media (max-width: 600px) {
+    .hero { padding: 56px 0 40px; }
+    section { padding: 56px 0; }
+    section h2 { font-size: 28px; }
+}
+
+/* ─── Persistent top nav ──────────────────────────────────────────── */
+html { scroll-behavior: smooth; }
+section { scroll-margin-top: 80px; }
+header.hero { scroll-margin-top: 80px; }
+
+.topnav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(251, 248, 242, 0.85);
+    backdrop-filter: saturate(180%) blur(14px);
+    -webkit-backdrop-filter: saturate(180%) blur(14px);
+    border-bottom: 1px solid var(--border);
+}
+.topnav-inner {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+.topnav-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--fg);
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 17px;
+    letter-spacing: -0.005em;
+}
+.topnav-brand:hover { text-decoration: none; color: var(--accent); }
+.topnav-brand .brand-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: var(--accent);
+    color: #FFF;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 3px 10px -2px rgba(0, 97, 255, 0.4);
+}
+.topnav-brand .brand-icon svg { width: 17px; height: 17px; }
+.topnav-links {
+    display: flex;
+    gap: 6px;
+    flex: 1;
+    margin-left: 8px;
+}
+.topnav-links a {
+    color: var(--fg-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: color 120ms ease, background 120ms ease;
+}
+.topnav-links a:hover {
+    color: var(--fg);
+    background: var(--bg-surface);
+    text-decoration: none;
+}
+.topnav-cta {
+    padding: 8px 16px;
+    font-size: 14px;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 820px) {
+    .topnav-links { display: none; }
+    .topnav-inner { justify-content: space-between; gap: 12px; }
+}
+@media (max-width: 480px) {
+    .topnav-brand span { display: none; }
+    .topnav-cta { padding: 8px 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── Persistent top nav ────────────────────────────────────────── -->
+<nav class="topnav" aria-label="Primary">
+    <div class="topnav-inner">
+        <a class="topnav-brand" href="#top">
+            <span class="brand-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M7 18A4.5 4.5 0 0 1 7 9a5.5 5.5 0 0 1 10.4-1.5A4.5 4.5 0 0 1 17 18Z"/>
+                    <path d="M12 11v6"/>
+                    <path d="M9 14l3 3 3-3"/>
+                </svg>
+            </span>
+            <span>Duplimate</span>
+        </a>
+        <div class="topnav-links">
+            <a href="#get-started">Get started</a>
+            <a href="#advanced">Advanced</a>
+            <a href="#features">Features</a>
+            <a href="#whats-next">What's next</a>
+        </div>
+        <a class="btn btn-primary topnav-cta" href="https://github.com/duplimate/duplimate/releases/latest">Download</a>
+    </div>
+</nav>
+
+<!-- ─── Hero ─────────────────────────────────────────────────────── -->
+<header class="hero" id="top">
+    <div class="container">
+        <div class="hero-logo" aria-hidden="true">
+            <!-- Cloud-with-arrow-in glyph, matching the in-app logo -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M7 18A4.5 4.5 0 0 1 7 9a5.5 5.5 0 0 1 10.4-1.5A4.5 4.5 0 0 1 17 18Z"/>
+                <path d="M12 11v6"/>
+                <path d="M9 14l3 3 3-3"/>
+            </svg>
+        </div>
+        <h1>Duplicacy backups<br>made friendly.</h1>
+        <p class="tagline">
+            A desktop GUI for <a href="https://duplicacy.com/">Duplicacy</a>.
+            Encrypted, deduplicated backups to the cloud or your own drive.
+            One <code>.exe</code>, one config folder, zero shell scripting.
+        </p>
+        <div class="cta-row">
+            <a class="btn btn-primary" href="https://github.com/duplimate/duplimate/releases/latest">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7,10 12,15 17,10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Download for Windows
+            </a>
+            <a class="btn btn-secondary" href="https://github.com/duplimate/duplimate">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+                </svg>
+                View on GitHub
+            </a>
+        </div>
+
+        <div class="pill-row">
+            <span class="pill">Windows 11</span>
+            <span class="pill">Encrypted (AES-256)</span>
+            <span class="pill">Dropbox · OneDrive · Google Drive · S3</span>
+            <span class="pill">MIT licensed</span>
+        </div>
+
+        <div class="notice">
+            <span class="note-tag">Note:</span>
+            Duplimate covers the everyday backup loop end-to-end and
+            <b>mostly works for what matters</b>, but it needs more real-world
+            mileage before calling itself stable. Tested on Windows 11.
+            <b>Zero testing on macOS and Linux</b> so far — the code targets
+            both via Avalonia and there's no architectural reason it shouldn't
+            run there. Try it and please file an issue if anything surprises
+            you.
+        </div>
+    </div>
+</header>
+
+<!-- ─── Screenshots ──────────────────────────────────────────────── -->
+<section id="get-started">
+    <div class="container">
+        <h2>Get started</h2>
+        <p class="lede">
+            Here's the whole flow from clicking the download to recovering a
+            file. Skim it once — it's short.
+        </p>
+
+        <div class="tldr">
+            <strong>The philosophy:</strong> setting up a backup is three
+            steps. Restoring a file is three steps. If you can count to three,
+            you can use Duplimate.
+        </div>
+
+        <h3 class="tutorial-h">Set up your first backup</h3>
+
+        <div class="steps">
+
+            <article class="step">
+                <span class="step-num">1</span>
+                <div class="step-body">
+                    <h3>Tell it what to back up</h3>
+                    <p>
+                        Drop in your Documents folder, your Pictures, the whole
+                        C: drive — anything that matters. Live size estimation
+                        while you choose, so you'll know up front if it fits.
+                    </p>
+                    <img src="screenshots/08-onboarding-sources.png" alt="Onboarding step 1 — pick the folders to back up">
+                </div>
+            </article>
+
+            <article class="step">
+                <span class="step-num">2</span>
+                <div class="step-body">
+                    <h3>Tell it where the safe copy lives</h3>
+                    <p>
+                        Backups can go anywhere: an external drive plugged
+                        into the same machine, a folder on your NAS, or a
+                        cloud account you already pay for. The wizard shows
+                        the destinations you already set up; if you haven't
+                        yet, click <em>"Or set up a new destination…"</em> and
+                        we'll walk you through it.
+                    </p>
+
+                    <div class="branch">
+                        <h4>Adding a local destination <span class="tag">external drive / NAS folder</span></h4>
+                        <p>
+                            The simple path. Pick "External drive" or "Local
+                            folder" from the Type dropdown, point us at the
+                            path, decide whether to encrypt — no OAuth, no
+                            API keys, no tokens. If it's a USB drive that's
+                            sometimes unplugged, give us the expected drive
+                            letter and volume label so we skip the run cleanly
+                            on days it's not connected.
+                        </p>
+                        <img src="screenshots/11b-destination-editor-local.png" alt="Destination editor configured for an external drive">
+                    </div>
+
+                    <div class="branch">
+                        <h4>Adding a cloud destination <span class="tag">Dropbox · OneDrive · Google Drive · S3</span></h4>
+                        <p>
+                            Same starting point — click <em>"Or set up a new
+                            destination…"</em> and pick your cloud. We open
+                            the provider's sign-in page; you copy back a
+                            token; we verify it works before anything writes.
+                            For Dropbox we use the <strong>app-scoped</strong>
+                            OAuth flow — the app only ever sees its own
+                            sub-folder inside your Dropbox, never the rest of
+                            your files. Tokens stay on your machine,
+                            encrypted at rest; the cloud provider never sees
+                            your data in the clear.
+                        </p>
+                        <img src="screenshots/11-destination-editor-dropbox.png" alt="Destination editor configured for Dropbox">
+                    </div>
+                </div>
+            </article>
+
+            <article class="step">
+                <span class="step-num">3</span>
+                <div class="step-body">
+                    <h3>Tell it when to run</h3>
+                    <p>
+                        Sensible defaults: nightly at 8 PM, with a retention
+                        pyramid (keep daily snapshots for 7 days, weekly for
+                        30, monthly for 90, yearly for 365). Customize freely.
+                        One more click and your first backup is running.
+                    </p>
+                    <img src="screenshots/10-onboarding-schedule.png" alt="Onboarding step 3 — pick the schedule">
+                </div>
+            </article>
+
+            <article class="step milestone">
+                <div class="step-body">
+                    <h3>That's it. Watch it work.</h3>
+                    <p>
+                        Live progress bar while the first run uploads. After
+                        that, the schedule takes over — your machine runs
+                        backups when you told it to, and nothing else.
+                    </p>
+                    <img src="screenshots/01-backups-running.png" alt="Main backups view with a backup in progress">
+                </div>
+            </article>
+
+            <article class="step milestone">
+                <div class="step-body">
+                    <h3>Day-to-day, this is what you see</h3>
+                    <p>
+                        All your backups, one screen. Healthy runs get a
+                        quiet green dot; anything that needs attention
+                        surfaces at the top of the list.
+                    </p>
+                    <img src="screenshots/02-backups-overview.png" alt="Backups overview with three configured backups">
+                </div>
+            </article>
+
+        </div>
+
+        <h3 class="tutorial-h second">When you need a file back</h3>
+
+        <div class="steps">
+
+            <article class="step">
+                <span class="step-num">1</span>
+                <div class="step-body">
+                    <h3>Pick a backup and a moment in time</h3>
+                    <p>
+                        Click <em>Restore files</em> on any backup, or go to
+                        the Restore tab. Choose which backup, then which
+                        revision — yesterday's, last week's, a year ago.
+                    </p>
+                    <img src="screenshots/04-restore-pick.png" alt="Restore wizard — pick a backup">
+                </div>
+            </article>
+
+            <article class="step">
+                <span class="step-num">2</span>
+                <div class="step-body">
+                    <h3>Tick the files you want back</h3>
+                    <p>
+                        Browse the snapshot. Filter by filename if it's a
+                        big repository. Tick checkboxes. The bottom strip
+                        shows the file count and total size as you select,
+                        so you know how big the restore will be before it
+                        starts.
+                    </p>
+                    <img src="screenshots/05-restore-files.png" alt="Restore wizard — file picker">
+                </div>
+            </article>
+
+            <article class="step">
+                <span class="step-num">3</span>
+                <div class="step-body">
+                    <h3>Choose where they land. Click Restore.</h3>
+                    <p>
+                        Default is back to where the files originally came
+                        from. Or pick a different folder if you'd rather not
+                        overwrite anything. Parallel downloads with per-file
+                        retry — one slow file doesn't block the rest. Done.
+                    </p>
+                </div>
+            </article>
+
+        </div>
+    </div>
+</section>
+
+<!-- ─── Advanced mode (for power users) ────────────────────────────── -->
+<section id="advanced">
+    <div class="container">
+        <h2>Advanced mode</h2>
+        <p class="lede">
+            The easy-mode wizard covers the 95% case. When you need more —
+            multiple destinations per backup, exclusion filters, monitoring
+            integration, the full Duplicacy surface — every dial is one
+            click away.
+        </p>
+        <div class="advanced-grid">
+            <figure class="adv">
+                <img src="screenshots/03-destinations.png" alt="Destinations view with three configured destinations">
+                <figcaption class="adv-caption">
+                    <h4>Manage every destination in one place</h4>
+                    <p>Add, edit, remove. Each backup can write to several destinations — local + cloud for the 3-2-1 rule — and each will only run when its destination is reachable.</p>
+                </figcaption>
+            </figure>
+            <figure class="adv">
+                <img src="screenshots/12-backup-editor.png" alt="Advanced backup editor">
+                <figcaption class="adv-caption">
+                    <h4>Backup editor — the full surface</h4>
+                    <p>Multiple sources, multiple destinations, filter syntax with live simulation, per-target threads, retention policy, prune / check toggles. Anything Duplicacy supports, with a name to it.</p>
+                </figcaption>
+            </figure>
+            <figure class="adv">
+                <img src="screenshots/07-settings.png" alt="Settings view">
+                <figcaption class="adv-caption">
+                    <h4>Settings — monitoring, email, theme</h4>
+                    <p>Healthchecks.io auto-setup (paste your API key, we create and name the checks). Failure notifications via Resend or Mailgun SMTP. Theme + accent. Custom Duplicacy binary path if you want to BYO.</p>
+                </figcaption>
+            </figure>
+            <figure class="adv">
+                <img src="screenshots/06-logs.png" alt="Activity and logs view">
+                <figcaption class="adv-caption">
+                    <h4>Activity log you can audit</h4>
+                    <p>Every run records its files, bytes, duration, exit status. The raw Duplicacy stdout is captured next to each run, so when something looks wrong you can see exactly what.</p>
+                </figcaption>
+            </figure>
+        </div>
+    </div>
+</section>
+
+<!-- ─── What it does ──────────────────────────────────────────────── -->
+<section id="features">
+    <div class="container">
+        <h2>What it does</h2>
+        <p class="lede">
+            Everything Duplicacy on the CLI does, plus the things you'd
+            otherwise cobble together from scheduled-task XML, batch scripts,
+            and a watchdog process you wrote at 2 AM.
+        </p>
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2C20 17.5 12 22 12 22z"/><path d="M9 12l2 2 4-4"/></svg></div>
+                <h3>Encrypted &amp; deduplicated</h3>
+                <p>AES-256 client-side encryption with content-defined chunking. The same file across two backups uploads once. Nothing readable hits the cloud.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg></div>
+                <h3>Native scheduling</h3>
+                <p>Windows Task Scheduler. macOS launchd. Linux systemd. No always-on process — your machine runs backups when you tell it to, and only when you tell it to.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></div>
+                <h3>Filter preview</h3>
+                <p>Edit Duplicacy's filter syntax with a live simulation pane. See exactly which files would be included or excluded before the first byte hits the cloud.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27,6.96 12,12.01 20.73,6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
+                <h3>Portable config</h3>
+                <p>Everything lives in <code>Duplimate.config/</code> next to the binary. Back up the folder, drop it on a new machine, you're done.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M22 12c0-5.5-4.5-10-10-10S2 6.5 2 12s4.5 10 10 10c1.7 0 3.3-.4 4.7-1.2"/><path d="M16 16h6v6"/></svg></div>
+                <h3>Healthchecks.io built in</h3>
+                <p>Paste your API key, we create and name the checks for you. Local toast + bypassed-Focus-Assist alert with sound on failure. Optional email via Resend or Mailgun SMTP.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon"><svg viewBox="0 0 24 24"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></div>
+                <h3>Metered-network guard</h3>
+                <p>On Windows, the only OS that exposes a first-class metered signal: a backup that starts on Wi-Fi and detects a tether mid-run aborts cleanly. No data-plan surprises.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ─── What's next ───────────────────────────────────────────────── -->
+<section id="whats-next">
+    <div class="container">
+        <h2>What's next</h2>
+        <p class="lede">
+            The original author is now focusing on a successor project,
+            <a href="https://github.com/backspace-backup/backspace"><strong>Backspace</strong></a>,
+            an Avalonia desktop GUI built around
+            <a href="https://restic.net">Restic</a> instead of Duplicacy.
+            Duplimate is not deprecated — Duplicacy is still an excellent
+            engine, and Duplimate remains a perfectly serviceable way to
+            use it. If you'd like to take Duplimate forward as a
+            maintainer, <a href="https://github.com/duplimate/duplimate/issues">open an issue</a>.
+        </p>
+    </div>
+</section>
+
+<footer>
+    <div class="container">
+        <p>
+            <a href="https://github.com/duplimate/duplimate">GitHub</a> ·
+            <a href="https://github.com/duplimate/duplimate/blob/main/LICENSE">License (MIT)</a> ·
+            <a href="https://github.com/duplimate/duplimate/issues">Issues</a>
+        </p>
+        <p class="powered">
+            Powered by <a href="https://duplicacy.com/">Duplicacy</a>. Built with <a href="https://avaloniaui.net">Avalonia</a>.
+            Duplimate is MIT-licensed. The bundled Duplicacy CLI has its own license —
+            free for personal use, paid for commercial.
+        </p>
+    </div>
+</footer>
+
+</body>
+</html>

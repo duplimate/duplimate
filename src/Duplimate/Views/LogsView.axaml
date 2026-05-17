@@ -1,0 +1,200 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Duplimate.ViewModels"
+             xmlns:m="using:Duplimate.Models"
+             x:Class="Duplimate.Views.LogsView"
+             x:DataType="vm:LogsViewModel"
+             Background="{DynamicResource DM.Brush.BgBase}">
+
+  <Grid Margin="48,40,48,48" RowDefinitions="Auto,Auto,*">
+
+    <StackPanel Grid.Row="0" Margin="0,0,0,24">
+      <TextBlock Classes="page-title" Text="Logs &amp; runs"/>
+      <TextBlock Classes="page-subtitle" MaxWidth="720"
+                 Text="Live output from the current run, and the history of past runs per backup."/>
+    </StackPanel>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,16,*" Margin="0,0,0,14"
+          IsVisible="{Binding !HasNoBackups}">
+      <StackPanel Grid.Column="0" Spacing="6">
+        <TextBlock Classes="label-caps" Text="BACKUP"/>
+        <ComboBox ItemsSource="{Binding BackupNames}"
+                  SelectedItem="{Binding SelectedBackup}"
+                  HorizontalAlignment="Stretch"
+                  PlaceholderText="Pick a backup"/>
+      </StackPanel>
+      <StackPanel Grid.Column="2" Spacing="6">
+        <TextBlock Classes="label-caps" Text="RUN"/>
+        <ComboBox ItemsSource="{Binding History}"
+                  SelectedItem="{Binding SelectedRun}"
+                  HorizontalAlignment="Stretch"
+                  PlaceholderText="Pick a run">
+          <ComboBox.ItemTemplate>
+            <DataTemplate DataType="m:RunRecord">
+              <!-- Compose the row text from a converter rather than
+                   chained <Run> elements: the in-flight synthetic
+                   RunRecord has Status=Running AND Summary="Running…",
+                   which used to render as "12:34 · Running · Running…"
+                   with the same word duplicated. The converter folds
+                   that case (Summary mirrors Status) into a single
+                   "12:34 · Running…" line. -->
+              <TextBlock Text="{Binding ., Converter={x:Static vm:RunRecordRowText.To}}"/>
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+      </StackPanel>
+    </Grid>
+
+    <!-- Empty state: zero configured backups. Without this the user
+         lands on the Logs tab with two empty ComboBoxes above two empty
+         cream surfaces — no guidance on why the page is dead and no
+         way back to setting up a backup. -->
+    <Border Grid.Row="2" Classes="empty-state"
+            IsVisible="{Binding HasNoBackups}"
+            VerticalAlignment="Top">
+      <Grid ColumnDefinitions="Auto,20,*">
+        <Border Grid.Column="0" Classes="empty-state-glyph">
+          <PathIcon Data="{StaticResource Icon.FileText}"/>
+        </Border>
+        <StackPanel Grid.Column="2" Spacing="16">
+          <TextBlock Classes="card-title" Text="No backups yet"/>
+          <TextBlock Classes="body" TextWrapping="Wrap"
+                     Text="Live output and run history will appear here once you set up a backup. The Backups tab is where to start."/>
+          <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0">
+            <Button Classes="primary" Command="{Binding GoToBackupsCommand}">
+              <TextBlock Text="Go to Backups"/>
+            </Button>
+          </StackPanel>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Single full-width log pane styled as a terminal: dark
+         background, soft phosphor-green text, traffic-light row in
+         the title bar, monospace body with subtle line height. Gives
+         the user a "you're looking at real shell output" cue rather
+         than the cream-document feel the rest of the app has — a
+         backup run IS shell output, and putting it in a terminal
+         frame makes that legible at a glance. The wrapping Border
+         hosts both the chrome and the buffer so the rounded corners
+         and dark background apply uniformly even when scrollbars
+         appear. -->
+    <Border Grid.Row="2"
+            IsVisible="{Binding !HasNoBackups}"
+            Background="#0E1116"
+            BorderBrush="#1F2630"
+            BorderThickness="1"
+            CornerRadius="10"
+            ClipToBounds="True">
+      <DockPanel LastChildFill="True">
+        <!-- Title bar: macOS-style traffic-light dots on the left, run
+             label centred-left, action buttons on the right. The dots
+             are decorative — they're a universal "this is a terminal
+             pane" signal, not interactive. -->
+        <Border DockPanel.Dock="Top"
+                Background="#161B22"
+                BorderBrush="#1F2630"
+                BorderThickness="0,0,0,1"
+                Padding="14,9">
+          <Grid ColumnDefinitions="Auto,14,*,Auto,8,Auto" VerticalAlignment="Center">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <Ellipse Width="11" Height="11" Fill="#FF5F56"/>
+              <Ellipse Width="11" Height="11" Fill="#FFBD2E"/>
+              <Ellipse Width="11" Height="11" Fill="#27C93F"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+              <Border Background="#3FB950"
+                      CornerRadius="999"
+                      Padding="10,3"
+                      IsVisible="{Binding IsShowingLive}">
+                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                  <Ellipse Width="6" Height="6" Fill="White">
+                    <Ellipse.Transitions>
+                      <Transitions>
+                        <DoubleTransition Property="Opacity" Duration="0:0:1"/>
+                      </Transitions>
+                    </Ellipse.Transitions>
+                  </Ellipse>
+                  <TextBlock Text="LIVE"
+                             Foreground="White"
+                             FontWeight="700" FontSize="11"
+                             LetterSpacing="0.6"/>
+                </StackPanel>
+              </Border>
+              <TextBlock Text="{Binding DisplayLabel}"
+                         FontFamily="{DynamicResource DM.Font.Mono}"
+                         FontSize="12"
+                         FontWeight="SemiBold"
+                         Foreground="#C9D1D9"
+                         VerticalAlignment="Center"/>
+            </StackPanel>
+            <Button Grid.Column="3"
+                    Classes="ghost"
+                    Padding="10,5"
+                    Background="#1F2630"
+                    BorderBrush="#2A3340"
+                    Foreground="#C9D1D9"
+                    Command="{Binding CopyDisplayedCommand}"
+                    ToolTip.Tip="Copy the displayed log to the clipboard">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <PathIcon Data="{StaticResource Icon.Copy}" Width="12" Height="12"
+                          Foreground="#C9D1D9"/>
+                <TextBlock Text="Copy" VerticalAlignment="Center" Foreground="#C9D1D9" FontSize="12"/>
+              </StackPanel>
+            </Button>
+            <Button Grid.Column="5"
+                    Classes="ghost" Content="Clear"
+                    Padding="10,5"
+                    Background="#1F2630"
+                    BorderBrush="#2A3340"
+                    Foreground="#C9D1D9"
+                    FontSize="12"
+                    Command="{Binding ClearLiveCommand}"
+                    IsVisible="{Binding IsShowingLive}"/>
+          </Grid>
+        </Border>
+
+        <!-- Log buffer: phosphor-green-tinted neutral on near-black so
+             timestamps + status hits read distinctly without competing
+             with the cream-document chrome elsewhere in the app.
+             TextBox (read-only) so the user can select + copy lines.
+
+             Inline styles below kill the FluentTheme's blue focus
+             ring and pointer-over border-deepen — the user reported a
+             "flicker" effect: every time the bound DisplayText
+             changed (~7×/second during a verbose run), the TextBox
+             briefly redrew the focused-state border, producing a
+             pulsing blue outline. With BorderThickness=0 across all
+             template states, the redraw is invisible. -->
+        <!-- Explicit ScrollViewer + SelectableTextBlock. The earlier
+             TextBox approach put its OWN ScrollViewer inside the
+             FluentTheme template; that inner viewer sized its
+             scrollbars to the CONTENT extents (very tall on long
+             logs) instead of the parent viewport, parking the
+             horizontal scrollbar mid-pane. The user reported this
+             multiple times as "horizontal scrollbar was not at the
+             bottom but in the middle of the terminal". This pattern
+             takes the scroll layout into our own hands: the
+             ScrollViewer fills the DockPanel's remaining space, the
+             SelectableTextBlock is the content, and the H-bar
+             reliably sits at the actual viewport bottom. -->
+        <ScrollViewer x:Name="LogScroll"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto"
+                      AllowAutoHide="False"
+                      Background="Transparent"
+                      ScrollChanged="OnLogScrollChanged">
+          <SelectableTextBlock Text="{Binding DisplayText}"
+                               Background="Transparent"
+                               SelectionBrush="#264F78"
+                               Padding="16,12,16,16"
+                               FontFamily="{DynamicResource DM.Font.Mono}"
+                               FontSize="12.5"
+                               LineHeight="19"
+                               Foreground="#D7DCE2"
+                               TextWrapping="NoWrap"/>
+        </ScrollViewer>
+      </DockPanel>
+    </Border>
+  </Grid>
+</UserControl>

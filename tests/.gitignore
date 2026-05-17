@@ -1,0 +1,7 @@
+# Cached OAuth tokens captured by interactive cloud tests. Never commit.
+Duplimate.Tests/.auth-cache/
+
+# Per-run diff PNGs from ScreenshotDiffTests — derived from
+# artifacts/screenshots vs artifacts/baseline. Inspect locally; never
+# commit (would balloon the repo every run).
+Duplimate.Tests/artifacts/diffs/

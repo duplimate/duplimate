@@ -1,0 +1,685 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Duplimate.ViewModels"
+        xmlns:m="using:Duplimate.Models"
+        xmlns:v="using:Duplimate.Views"
+        x:Class="Duplimate.Views.BackupEditorWindow"
+        x:DataType="vm:BackupEditorViewModel"
+        Title="Backup settings — Duplimate"
+        Width="980" Height="840"
+        MinWidth="820" MinHeight="640"
+        Background="{DynamicResource DM.Brush.BgBase}"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid RowDefinitions="Auto,*,Auto" Margin="38,30,38,26">
+
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,22">
+      <StackPanel Grid.Column="0" Spacing="8">
+        <TextBlock Classes="page-title" Text="{Binding HeaderTitle}"/>
+        <TextBlock Classes="page-subtitle" MaxWidth="720"
+                   Text="You can refine anything later and switch easy/advanced mode at any time."/>
+      </StackPanel>
+      <!-- Mode toggle — see OnboardingWindow for the toggle-segment
+           rationale. Same control type both sides so both render at
+           the same height; only the active sub-class changes fill. -->
+      <StackPanel Grid.Column="1" Orientation="Horizontal"
+                  Height="32"
+                  VerticalAlignment="Center"
+                  AutomationProperties.Name="Editor mode"
+                  AutomationProperties.HelpText="Two-segment toggle: Easy or Advanced.">
+        <Button Classes="toggle-segment toggle-segment-left"
+                Content="Easy"
+                Click="OnSwitchToEasy"
+                AutomationProperties.Name="Easy mode"
+                AutomationProperties.HelpText="Switch to Easy mode (hides advanced options)."/>
+        <!-- Focusable + IsTabStop so screen readers reach the active
+             segment for its "Currently selected" announcement.
+             See OnboardingWindow.axaml for the same pattern. -->
+        <Button Classes="toggle-segment toggle-segment-active toggle-segment-right"
+                Content="Advanced"
+                IsHitTestVisible="False"
+                Focusable="True"
+                IsTabStop="True"
+                AutomationProperties.Name="Advanced mode"
+                AutomationProperties.HelpText="Currently selected. Advanced mode shows every option."/>
+      </StackPanel>
+    </Grid>
+
+    <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0">
+
+      <!-- =========== TAB: Overview =========== -->
+      <TabItem Header="Overview" FontFamily="{DynamicResource DM.Font.Body}">
+        <!-- ScrollViewer without Padding — earlier attempts used Padding
+             to breathe around the content but that appears to decouple the
+             viewport from the Extent on real Windows, so the last section
+             sat past Extent.Height and couldn't be scrolled into view.
+             Spacing now lives as Margin on the inner StackPanel. -->
+        <ScrollViewer VerticalScrollBarVisibility="Visible"
+                      HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Spacing="18" Margin="0,18,0,0">
+
+            <!-- (Validation summary moved to the footer, just above
+                 Cancel/Save, so it's always visible regardless of how
+                 far the user has scrolled.) -->
+
+            <!-- Card: FRIENDLY NAME. Compact card at the top so the
+                 user can rename a backup without scrolling. The helper
+                 line is short on purpose — the surrounding form is
+                 already long; the snapshot-chain-rename-safety contract
+                 lives in the docs. -->
+            <Border Classes="surface">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="section-title" Text="Friendly name" Margin="0"/>
+                <TextBox Text="{Binding Name}"
+                         Watermark="{Binding SuggestedName}"
+                         Classes.error="{Binding NameError, Converter={x:Static vm:NotEmpty.To}}"/>
+                <TextBlock Classes="helper" Margin="0"
+                           Text="Display label only — renaming is safe and won't fork the snapshot chain on storage."/>
+                <TextBlock Classes="field-error" Text="{Binding NameError}"
+                           IsVisible="{Binding NameError, Converter={x:Static vm:NotEmpty.To}}"/>
+              </StackPanel>
+            </Border>
+
+            <!-- Card: SOURCES (primary — this is what the user is actually
+                 configuring; the name is a convenience fallback shoved
+                 into Options). -->
+            <Border Classes="surface">
+              <StackPanel Spacing="14">
+                <TextBlock Classes="section-title" Text="Sources" Margin="0"/>
+
+                <TextBlock Classes="helper" Margin="0"
+                           Text="Pick the folders you want kept safe. Each folder gets its own snapshot chain, so you can restore any of them independently."/>
+
+                <!-- Empty-state: the whole purpose of this card when the
+                     user hasn't picked a source yet. -->
+                <TextBlock Classes="field-error" FontSize="13"
+                           Text="{Binding SourcesError}"
+                           IsVisible="{Binding SourcesError, Converter={x:Static vm:NotEmpty.To}}"/>
+
+                <ItemsControl ItemsSource="{Binding SourceChips}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="vm:SourceChipVm">
+                      <Border Background="{DynamicResource DM.Brush.AccentTint}"
+                              CornerRadius="8"
+                              Padding="12,8,8,8"
+                              Margin="0,0,0,6">
+                        <Grid ColumnDefinitions="Auto,10,*,Auto" VerticalAlignment="Center">
+                          <PathIcon Grid.Column="0" Data="{StaticResource Icon.Folder}"
+                                    Width="14" Height="14"
+                                    Foreground="{DynamicResource DM.Brush.Accent}"
+                                    VerticalAlignment="Center"/>
+                          <StackPanel Grid.Column="2" Spacing="2">
+                            <TextBlock Classes="mono" FontSize="13"
+                                       Text="{Binding Path}"
+                                       Foreground="{DynamicResource DM.Brush.FgPrimary}"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Classes="dim" FontSize="11"
+                                       Text="{Binding SizeLabel}"/>
+                          </StackPanel>
+                          <Button Grid.Column="3" Classes="row-action-danger"
+                                  Command="{Binding $parent[ItemsControl].((vm:BackupEditorViewModel)DataContext).RemoveSourceCommand}"
+                                  CommandParameter="{Binding Path}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                              <PathIcon Data="{StaticResource Icon.Trash}" Width="12" Height="12"/>
+                              <TextBlock Text="Remove"/>
+                            </StackPanel>
+                          </Button>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <Button Classes="primary"
+                          Command="{Binding AddSourceFromTreeCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <PathIcon Data="{StaticResource Icon.Plus}" Width="14" Height="14" Foreground="White"/>
+                      <TextBlock Text="Add sources…" VerticalAlignment="Center"/>
+                    </StackPanel>
+                  </Button>
+                  <Button Classes="ghost"
+                          Command="{Binding AddSourceByPathCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <PathIcon Data="{StaticResource Icon.FolderOpen}" Width="14" Height="14"/>
+                      <TextBlock Text="Add single folder…" VerticalAlignment="Center"/>
+                    </StackPanel>
+                  </Button>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- Card: targets -->
+            <Border Classes="surface">
+              <StackPanel Spacing="14">
+                <TextBlock Classes="section-title" Text="Destinations" Margin="0"/>
+                <TextBlock Classes="field-error" FontSize="13"
+                           Text="{Binding TargetsError}"
+                           IsVisible="{Binding TargetsError, Converter={x:Static vm:NotEmpty.To}}"/>
+                <!-- Each target rendered as a light-blue chip — same
+                     pattern as Easy mode + Sources. Info on the LEFT
+                     (icon + name + storage), action buttons on the
+                     RIGHT (Prune / Remove / Erase). The previous
+                     two-line layout (info top, buttons bottom-left)
+                     read as cluttered and "Prune to latest" lost its
+                     button styling against the chip background. -->
+                <ItemsControl ItemsSource="{Binding Targets}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="vm:TargetRow">
+                      <Border Background="{DynamicResource DM.Brush.AccentTint}"
+                              CornerRadius="8" Padding="12,10,12,10" Margin="0,0,0,8">
+                        <Grid ColumnDefinitions="Auto,10,*,Auto" VerticalAlignment="Center">
+                          <PathIcon Grid.Column="0"
+                                    Data="{Binding DestinationKind, Converter={x:Static vm:DestinationKindIcon.To}}"
+                                    Width="14" Height="14"
+                                    Foreground="{DynamicResource DM.Brush.Accent}"
+                                    VerticalAlignment="Center"/>
+                          <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding DestinationName}"
+                                       FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+                            <TextBlock Classes="dim" FontSize="11"
+                                       Text="{Binding StorageName, StringFormat='storage: {0}'}"/>
+                          </StackPanel>
+                          <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6"
+                                      VerticalAlignment="Center">
+                            <!-- Edit (constructive) precedes the
+                                 destructive cluster, matching the
+                                 BackupCard pattern. Each button now
+                                 carries a glyph: pencil = edit,
+                                 scissors = prune (trim history),
+                                 flame = erase (burn ALL data) and
+                                 trash = remove (forget destination
+                                 here, data stays remote). Glyphs
+                                 differentiate Erase from Remove at a
+                                 glance — both are red-toned, but the
+                                 flame signals categorically more
+                                 destructive than the trash. -->
+                            <Button Classes="row-action"
+                                    ToolTip.Tip="Edit this destination's settings"
+                                    Command="{Binding $parent[ItemsControl].((vm:BackupEditorViewModel)DataContext).EditTargetDestinationCommand}"
+                                    CommandParameter="{Binding}">
+                              <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="{StaticResource Icon.Edit}" Width="12" Height="12"/>
+                                <TextBlock Text="Edit"/>
+                              </StackPanel>
+                            </Button>
+                            <Button Classes="row-action-warn"
+                                    ToolTip.Tip="Delete older revisions to reclaim space (latest revision is preserved)"
+                                    Command="{Binding $parent[ItemsControl].((vm:BackupEditorViewModel)DataContext).PruneToLatestCommand}"
+                                    CommandParameter="{Binding}">
+                              <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="{StaticResource Icon.Compress}" Width="12" Height="12"/>
+                                <TextBlock Text="Prune"/>
+                              </StackPanel>
+                            </Button>
+                            <!-- Erase uses row-action-critical (Mantine
+                                 filled red) instead of row-action-danger
+                                 so it's visually heavier than Remove —
+                                 the user asked for "a colour stronger
+                                 than red" to flag this is even more
+                                 destructive. Both buttons still red,
+                                 but solid-filled vs light-tonal makes
+                                 the severity hierarchy obvious. -->
+                            <Button Classes="row-action-critical"
+                                    ToolTip.Tip="Wipe ALL data this backup has stored at this destination"
+                                    Command="{Binding $parent[ItemsControl].((vm:BackupEditorViewModel)DataContext).EraseDestinationCommand}"
+                                    CommandParameter="{Binding}">
+                              <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="{StaticResource Icon.Eraser}" Width="12" Height="12"/>
+                                <TextBlock Text="Erase"/>
+                              </StackPanel>
+                            </Button>
+                            <Button Classes="row-action-danger"
+                                    ToolTip.Tip="Stop using this destination for this backup (data on remote stays)"
+                                    Command="{Binding $parent[ItemsControl].((vm:BackupEditorViewModel)DataContext).RemoveTargetCommand}"
+                                    CommandParameter="{Binding}">
+                              <StackPanel Orientation="Horizontal" Spacing="6">
+                                <PathIcon Data="{StaticResource Icon.Trash}" Width="12" Height="12"/>
+                                <TextBlock Text="Remove"/>
+                              </StackPanel>
+                            </Button>
+                          </StackPanel>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- If no destinations are configured yet, show a
+                     contextual "Set one up" callout instead of an empty
+                     picker. Opens DestinationEditor modally; the newly
+                     saved destination is pre-selected on return. -->
+                <Border Classes="callout" IsVisible="{Binding HasNoAvailableDestinations}">
+                  <StackPanel Spacing="10">
+                    <TextBlock Classes="body" FontWeight="SemiBold"
+                               Text="No destinations set up yet"
+                               Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+                    <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap"
+                               Text="Destinations are where your backups live — a drive, a cloud folder, or an S3 bucket. Add one now and it'll be available across all your backups."/>
+                    <Button Classes="primary" HorizontalAlignment="Left" Margin="0,4,0,0"
+                            Command="{Binding CreateDestinationInlineCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="{StaticResource Icon.Plus}" Width="14" Height="14" Foreground="White"/>
+                        <TextBlock Text="Set up a destination" VerticalAlignment="Center"/>
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </Border>
+
+                <!-- SHARED component — identical to OnboardingWindow's
+                     Easy-mode picker. The Add button's "disabled when
+                     nothing's picked" gate lives inside the control,
+                     so Easy and Advanced modes can't drift apart
+                     (which is what happened before — Advanced kept
+                     the Add button enabled with no selection while
+                     Easy correctly disabled it). -->
+                <v:DestinationAddPicker
+                    IsVisible="{Binding !HasNoAvailableDestinations}"
+                    AvailableDestinations="{Binding AvailableDestinationsForAdd}"
+                    SelectedDestination="{Binding PendingNewDestination, Mode=TwoWay}"
+                    HasMoreToAdd="{Binding HasMoreDestinationsToAdd}"
+                    AddCommand="{Binding AddTargetCommand}"
+                    CreateNewCommand="{Binding CreateDestinationInlineCommand}"
+                    CreateNewLabel="{Binding CreateDestinationButtonLabel}"/>
+              </StackPanel>
+            </Border>
+
+            <!-- Card: Options. Retention policy goes first per user
+                 feedback — it's the most decision-heavy knob; everything
+                 else is optional tuning. Prune/Check are close kin of
+                 retention. Name override, threads, bandwidth, VSS,
+                 healthchecks and extra args all live in a toggle-able
+                 Advanced group below. -->
+            <Border Classes="surface">
+              <StackPanel Spacing="16">
+                <TextBlock Classes="section-title" Text="Options" Margin="0"/>
+
+                <!-- Retention policy (renamed from "Keep policy" per user
+                     direction — "retention" is the term non-technical
+                     users recognize). -->
+                <StackPanel Spacing="6">
+                  <TextBlock Classes="label-caps" Text="RETENTION POLICY"/>
+                  <TextBlock Classes="helper" Margin="0,0,0,2"
+                             Text="Space-separated n:m pairs, where n = keep one revision per N days and m = apply this rule to revisions older than M days. n=0 means delete."/>
+                  <TextBox Text="{Binding KeepPolicy, UpdateSourceTrigger=PropertyChanged}"
+                           FontFamily="{DynamicResource DM.Font.Mono}"
+                           Watermark="0:365 30:90 7:30 1:7"
+                           Classes.error="{Binding KeepPolicyError, Converter={x:Static vm:NotEmpty.To}}"/>
+
+                  <Border Padding="12,10" CornerRadius="8"
+                          Background="{DynamicResource DM.Brush.AccentTint}"
+                          IsVisible="{Binding KeepPolicyExplanation.Valid}">
+                    <TextBlock Classes="body" FontSize="13" TextWrapping="Wrap"
+                               Foreground="{DynamicResource DM.Brush.FgPrimary}"
+                               Text="{Binding KeepPolicyExplanation.Summary}"/>
+                  </Border>
+                  <Border Padding="12,10" CornerRadius="8"
+                          Background="{DynamicResource DM.Brush.DangerTint}"
+                          IsVisible="{Binding !KeepPolicyExplanation.Valid}">
+                    <TextBlock Classes="body" FontSize="13" TextWrapping="Wrap"
+                               Foreground="{DynamicResource DM.Brush.DangerTintFg}"
+                               Text="{Binding KeepPolicyExplanation.Summary}"/>
+                  </Border>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Spacing="24">
+                  <CheckBox IsChecked="{Binding PruneAfterBackup}" Content="Prune after each backup"
+                            Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+                  <CheckBox IsChecked="{Binding CheckAfterBackup}" Content="Check after each backup"
+                            Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- Advanced reveal — lifted OUT of the Options card so the
+                 toggle row is a sibling of the card Border rather than a
+                 nested grandchild inside surface padding + StackPanel
+                 spacing. That flatter tree measures reliably; earlier
+                 nested placements caused the ScrollViewer's measured
+                 content extent to stop short of the toggle on real
+                 Windows (though not in the headless test harness),
+                 making Advanced literally unreachable by scrolling. -->
+            <Button Classes="advanced-toggle-btn" x:Name="AdvancedToggleButton"
+                    HorizontalAlignment="Left"
+                    Command="{Binding ToggleAdvancedCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="{Binding AdvancedToggleLabel}"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource DM.Brush.Accent}"
+                           FontWeight="SemiBold"/>
+                <TextBlock Text="(threads, bandwidth, VSS, healthchecks, extra args)"
+                           Classes="dim" FontSize="12" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Button>
+
+            <!-- Advanced content: its own top-level card when open, so it
+                 reads as a distinct section rather than a continuation of
+                 Options. Hidden when the toggle is closed. -->
+            <Border Classes="surface" IsVisible="{Binding IsAdvancedOpen}">
+              <StackPanel Spacing="16">
+
+                <!-- Friendly name now lives in the top-of-form card,
+                     before Sources. Threads / bandwidth / VSS / extra
+                     args remain Advanced-only. -->
+
+                <Grid ColumnDefinitions="*,22,*,22,*">
+                  <StackPanel Grid.Column="0" Spacing="6">
+                    <TextBlock Classes="label-caps" Text="THREADS"/>
+                    <NumericUpDown Value="{Binding Threads}" Minimum="0" Maximum="32"/>
+                    <TextBlock Classes="helper"
+                               Text="Leave at 0 for auto — we pick 1 for local / NAS destinations and 4 for cloud. Any positive value overrides the auto choice for every destination."/>
+                  </StackPanel>
+                  <StackPanel Grid.Column="2" Spacing="6">
+                    <TextBlock Classes="label-caps" Text="BANDWIDTH LIMIT (KB/S)"/>
+                    <NumericUpDown Value="{Binding BandwidthLimitKBps}" Minimum="0" Maximum="1000000"/>
+                    <TextBlock Classes="helper" Text="0 = unlimited"/>
+                  </StackPanel>
+                  <StackPanel Grid.Column="4" Spacing="6">
+                    <TextBlock Classes="label-caps" Text="VSS (SHADOW COPY)"/>
+                    <CheckBox IsChecked="{Binding UseVss}"
+                              Content="Use VSS for locked files"
+                              Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+                  </StackPanel>
+                </Grid>
+
+                <StackPanel Spacing="6">
+                  <TextBlock Classes="label-caps" Text="HEALTHCHECKS.IO"/>
+
+                  <!-- Inline setup: shown only when the global API key
+                       isn't already set in Settings. Saving the backup
+                       writes whatever is here back into Settings, so
+                       this acts as an in-flow shortcut for first-time
+                       users without forcing them to bounce out. -->
+                  <StackPanel Spacing="6" IsVisible="{Binding NeedsHealthcheckSetup}">
+                    <TextBlock Classes="helper" Margin="0,0,0,2"
+                               Text="Heads up — you don't have a Healthchecks.io API key in Settings yet. Paste one here and we'll save it for you (or visit Settings to set it up first)."/>
+                    <Grid ColumnDefinitions="*,16,260">
+                      <StackPanel Grid.Column="0" Spacing="4">
+                        <TextBlock Classes="label-caps" Text="API KEY"/>
+                        <!-- Healthchecks project API keys are 32-character
+                             alphanumeric strings (no prefix); a previous
+                             "hck-…" placeholder was wrong. -->
+                        <TextBox Text="{Binding HealthcheckApiKeyInput}" PasswordChar="•"
+                                 Watermark="32-character key from your project's Settings → API Access">
+                          <ToolTip.Tip>
+                            <StackPanel MaxWidth="400" Spacing="6">
+                              <TextBlock FontWeight="SemiBold" Text="How to get your Healthchecks.io API key"/>
+                              <TextBlock TextWrapping="Wrap"
+                                         Text="1.  Sign in (or sign up) at healthchecks.io."/>
+                              <TextBlock TextWrapping="Wrap"
+                                         Text="2.  Open your project — the default project that gets created on signup is fine."/>
+                              <TextBlock TextWrapping="Wrap"
+                                         Text="3.  Click the project's &quot;Settings&quot; link at the top."/>
+                              <TextBlock TextWrapping="Wrap"
+                                         Text="4.  Find the &quot;API Access&quot; section and click &quot;Create&quot; next to API key."/>
+                              <TextBlock TextWrapping="Wrap"
+                                         Text="5.  Copy the regular &quot;API key&quot; (NOT read-only — we need write access to create the check for this backup)."/>
+                            </StackPanel>
+                          </ToolTip.Tip>
+                        </TextBox>
+                      </StackPanel>
+                      <StackPanel Grid.Column="2" Spacing="4">
+                        <TextBlock Classes="label-caps" Text="BASE URL"/>
+                        <TextBox Text="{Binding HealthcheckBaseUrlInput}"
+                                 Watermark="https://healthchecks.io"
+                                 ToolTip.Tip="Only change this if you self-host Healthchecks."/>
+                      </StackPanel>
+                    </Grid>
+                  </StackPanel>
+
+                  <Grid ColumnDefinitions="Auto,12,*">
+                    <Button Grid.Column="0" Classes="ghost" Content="Create / update check"
+                            Command="{Binding CreateHealthcheckCommand}"/>
+                    <TextBox Grid.Column="2" Text="{Binding HealthcheckId}"
+                             FontFamily="{DynamicResource DM.Font.Mono}"
+                             Watermark="UUID from healthchecks.io (auto-filled after create)"
+                             Classes.error="{Binding HealthcheckIdError, Converter={x:Static vm:NotEmpty.To}}"/>
+                  </Grid>
+                  <TextBlock Classes="field-error" Text="{Binding HealthcheckIdError}"
+                             IsVisible="{Binding HealthcheckIdError, Converter={x:Static vm:NotEmpty.To}}"/>
+                  <TextBlock Classes="dim" Text="{Binding HealthcheckStatus}"
+                             IsVisible="{Binding HealthcheckStatus, Converter={x:Static vm:NotEmpty.To}}"/>
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                  <TextBlock Classes="label-caps" Text="EXTRA BACKUP ARGS"/>
+                  <TextBox Text="{Binding ExtraBackupArgs}" FontFamily="{DynamicResource DM.Font.Mono}"
+                           Watermark="-chunk-size 4194304 -hash"/>
+                  <TextBlock Classes="helper"
+                             Text="Passed verbatim to `duplicacy backup`. Use sparingly."/>
+                </StackPanel>
+
+              </StackPanel>
+            </Border>
+
+            <!-- Trailing sentinel: a 40px invisible spacer forces the
+                 ScrollViewer's measured Extent a clear step beyond the
+                 last real card, so layout-measure rounding errors or
+                 FluentTheme quirks can't leave the last item just outside
+                 the scrollable range. Gives visual breathing room too. -->
+            <Border Height="40" Background="Transparent"/>
+
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <!-- =========== TAB: Schedule =========== -->
+      <TabItem Header="Schedule">
+        <ScrollViewer Padding="0,18,0,24" VerticalScrollBarVisibility="Auto">
+          <StackPanel Spacing="18">
+
+            <Border Classes="surface">
+              <StackPanel Spacing="16">
+
+                <!-- Master switch: when off, the backup is configured but
+                     never auto-runs. Lives at the top of the Schedule
+                     tab where users naturally look for "should this run
+                     automatically?" — earlier it was tucked into the
+                     Sources card on the Overview tab and got missed.
+                     Wrapped in master-toggle chrome to match the
+                     Encrypt-storage gateway control in the destination
+                     editor — same visual weight = same role. -->
+                <Border Classes="master-toggle">
+                  <CheckBox IsChecked="{Binding Enabled}"
+                            Content="Run this backup automatically on the schedule below"
+                            FontWeight="SemiBold"
+                            Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+                </Border>
+
+                <Grid ColumnDefinitions="*,22,*"
+                      IsEnabled="{Binding Enabled}">
+                  <StackPanel Grid.Column="0" Spacing="6">
+                    <TextBlock Classes="label-caps" Text="FREQUENCY"/>
+                    <ComboBox ItemsSource="{Binding AvailableFrequencies}" SelectedItem="{Binding Frequency}"
+                              HorizontalAlignment="Stretch"/>
+                  </StackPanel>
+                  <StackPanel Grid.Column="2" Spacing="6">
+                    <TextBlock Classes="label-caps" Text="TIME OF DAY"/>
+                    <TimePicker SelectedTime="{Binding TimeOfDay}" ClockIdentifier="24HourClock"/>
+                  </StackPanel>
+                </Grid>
+
+                <StackPanel Spacing="6"
+                            IsEnabled="{Binding Enabled}"
+                            IsVisible="{Binding Frequency, Converter={x:Static vm:Eq.To}, ConverterParameter=Hourly}">
+                  <TextBlock Classes="label-caps" Text="RUN EVERY N HOURS"/>
+                  <NumericUpDown Value="{Binding HourlyInterval}" Minimum="1" Maximum="168"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="surface">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="section-title" Text="Conditions" Margin="0"/>
+
+                <!-- Start / skip conditions first — these decide
+                     whether the run starts at all. -->
+                <CheckBox IsChecked="{Binding SkipOnBattery}"      Content="Skip runs when on battery"
+                          Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+                <CheckBox IsChecked="{Binding RequireNetwork}"     Content="Skip run if no internet connection"
+                          Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+                <CheckBox IsChecked="{Binding CatchUpMissed}"      Content="Run missed scheduled backups as soon as possible"
+                          Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+
+                <!-- Stop conditions — what aborts a run that's already
+                     in flight. Grouped at the bottom so the list reads
+                     as "starting rules, then stopping rules". -->
+                <Border Classes="rule" Margin="0,4"/>
+                <CheckBox IsChecked="{Binding StopOnBattery}"      Content="Stop mid-run if switched to battery"
+                          Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+                <CheckBox IsChecked="{Binding AbortOnMeteredNetwork}" Content="Stop the backup if the connection becomes metered mid-run"
+                          Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+              </StackPanel>
+            </Border>
+
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <!-- =========== TAB: Filters =========== -->
+      <TabItem Header="Filters">
+        <Grid RowDefinitions="Auto,*" Margin="0,14,0,0">
+          <StackPanel Grid.Row="0" Spacing="14" Margin="0,0,0,14">
+            <TextBlock Classes="body"
+                       Text="Filter rules control what ends up in the backup. Lines starting with e: exclude, i: include; + / - work with globs. Comments start with #. Start with our recommended exclusions below — they cover the things almost everyone wants to skip — then tweak as you like."
+                       Foreground="{DynamicResource DM.Brush.FgSecondary}"
+                       TextWrapping="Wrap"/>
+
+            <!-- Recommended exclusions card. The block is bracketed by
+                 marker comments so re-applying replaces it in place
+                 instead of duplicating; anything outside the markers
+                 (the user's own rules) is preserved. -->
+            <Border Classes="surface" Padding="18,16">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="section-title" Text="Recommended exclusions" Margin="0"/>
+                <TextBlock Classes="helper" Margin="0"
+                           Text="Tick what you'd like skipped, then click Apply. We'll insert a labelled block at the top of your filter rules — your own rules below stay untouched."/>
+
+                <CheckBox IsChecked="{Binding RecExcludeWindowsSystem}"
+                          Content="Windows system files (pagefile, hiberfil, $Recycle.Bin, System Volume Information, Windows.old, ntuser.dat, etc.)"
+                          Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+                <CheckBox IsChecked="{Binding RecExcludeCachesAndJunk}"
+                          Content="App caches and junk (browser caches, GPU/shader caches, /temp/, *.tmp, node_modules, .DS_Store, …)"
+                          Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+
+                <StackPanel IsVisible="{Binding HasDetectedCloudFolders}" Spacing="4" Margin="0,4,0,0">
+                  <TextBlock Classes="label-caps" Text="CLOUD-SYNCED FOLDERS DETECTED"/>
+                  <TextBlock Classes="helper" Margin="0,0,0,2"
+                             Text="These folders are already replicated in their providers' clouds. Skipping them avoids duplicating the data in your backup."/>
+                  <ItemsControl ItemsSource="{Binding DetectedCloudFolders}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="vm:CloudExcludeChoice">
+                        <CheckBox IsChecked="{Binding IsSelected}"
+                                  Margin="0,2"
+                                  Foreground="{DynamicResource DM.Brush.FgPrimary}">
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{Binding Label}"/>
+                            <TextBlock Classes="mono" FontSize="12"
+                                       Foreground="{DynamicResource DM.Brush.FgDim}"
+                                       Text="{Binding Path}"
+                                       TextTrimming="CharacterEllipsis"
+                                       MaxWidth="520"/>
+                          </StackPanel>
+                        </CheckBox>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Spacing="14" Margin="0,4,0,0" VerticalAlignment="Center">
+                  <Button Classes="primary"
+                          Content="Apply recommended exclusions"
+                          Command="{Binding ApplyRecommendedFiltersCommand}"/>
+                  <TextBlock Classes="dim" FontSize="12"
+                             Foreground="{DynamicResource DM.Brush.Accent}"
+                             VerticalAlignment="Center"
+                             Text="{Binding RecEstimatedSavingsLabel}"
+                             IsVisible="{Binding RecEstimatedSavingsLabel, Converter={x:Static vm:NotEmpty.To}}"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Classes="ghost" Content="Simulate" Command="{Binding RunFilterSimulationCommand}"/>
+              <TextBlock Classes="dim" Text="Runs backup -enum-only and shows what ends up in the snapshot." VerticalAlignment="Center"/>
+            </StackPanel>
+          </StackPanel>
+          <Grid Grid.Row="1" ColumnDefinitions="*,16,*">
+            <TextBox Grid.Column="0"
+                     Text="{Binding FiltersText}"
+                     FontFamily="{DynamicResource DM.Font.Mono}"
+                     FontSize="12"
+                     AcceptsReturn="True"
+                     AcceptsTab="True"
+                     TextWrapping="NoWrap"
+                     ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+            <Border Grid.Column="2" Classes="surface" Padding="16,14">
+              <ScrollViewer>
+                <TextBlock Text="{Binding FilterSimulationLog}"
+                           FontFamily="{DynamicResource DM.Font.Mono}"
+                           FontSize="12" LineHeight="18"
+                           Foreground="{DynamicResource DM.Brush.FgSecondary}"
+                           TextWrapping="NoWrap"/>
+              </ScrollViewer>
+            </Border>
+          </Grid>
+        </Grid>
+      </TabItem>
+
+    </TabControl>
+
+    <!-- Footer. Validation summary is rendered here (NOT inside the
+         tab content) so it's always visible alongside the Save/Cancel
+         row — the previous placement at the top of the Overview tab
+         scrolled offscreen the moment the user moved down the form,
+         which made "why is Save disabled?" hard to debug. -->
+    <StackPanel Grid.Row="2" Spacing="12" Margin="0,18,0,0">
+      <Border Classes="validation-summary" IsVisible="{Binding HasAnyError}">
+        <!-- Grid (not StackPanel Horizontal) so wrap can actually wrap. -->
+        <Grid ColumnDefinitions="Auto,10,*">
+          <TextBlock Grid.Column="0" Text="!" FontSize="18" FontWeight="Bold" VerticalAlignment="Top"
+                     Foreground="{DynamicResource DM.Brush.DangerTintFg}"/>
+          <TextBlock Grid.Column="2" Classes="body" FontWeight="SemiBold" TextWrapping="Wrap"
+                     Foreground="{DynamicResource DM.Brush.DangerTintFg}"
+                     Text="{Binding SummaryError}"/>
+        </Grid>
+      </Border>
+      <!-- Probe-warning banner. Amber tone (Warn brush) so it visually
+           distinguishes from the red error block above — this is a
+           "are you sure?" message, not a hard block. The first save
+           click that triggers it returns null; a second click passes
+           through. The text in the banner explains why. -->
+      <Border IsVisible="{Binding HasProbeWarning}"
+              Background="{DynamicResource DM.Brush.WarnTint}"
+              BorderBrush="{DynamicResource DM.Brush.Warn}"
+              BorderThickness="1"
+              CornerRadius="{DynamicResource DM.CornerRadiusSmall}"
+              Padding="14,10">
+        <Grid ColumnDefinitions="Auto,10,*">
+          <TextBlock Grid.Column="0" Text="!" FontSize="18" FontWeight="Bold" VerticalAlignment="Top"
+                     Foreground="{DynamicResource DM.Brush.WarnTintFg}"/>
+          <TextBlock Grid.Column="2" Classes="body" TextWrapping="Wrap"
+                     Foreground="{DynamicResource DM.Brush.FgPrimary}"
+                     Text="{Binding ProbeWarning}"/>
+        </Grid>
+      </Border>
+      <Grid ColumnDefinitions="*,Auto">
+      <TextBlock Grid.Column="0" Classes="dim" FontSize="12"
+                 VerticalAlignment="Center"
+                 Text="{Binding SaveStatus}"
+                 IsVisible="{Binding SaveStatus, Converter={x:Static vm:NotEmpty.To}}"/>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+        <Button Classes="ghost" Content="Cancel" Click="OnCancel"
+                IsEnabled="{Binding !SaveBusy}"/>
+        <Button Classes="ghost" Content="Save &amp; Run" Click="OnSaveAndRun"
+                IsEnabled="{Binding !SaveBusy}"/>
+        <Button Classes="primary" Content="Save" Click="OnSave"
+                IsEnabled="{Binding !SaveBusy}"/>
+      </StackPanel>
+      </Grid>
+    </StackPanel>
+
+  </Grid>
+</Window>

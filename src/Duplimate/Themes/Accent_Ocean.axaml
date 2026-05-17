@@ -1,0 +1,34 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Ocean (#0061FF) — default. Deep saturated blue that reads well on both
+       light and dark backgrounds; evokes "clear, calm, deep storage". -->
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Light">
+      <!-- Light-theme accent ramp redesigned for hover convention.
+           Earlier AccentHover was LIGHTER than Accent (#0061FF → #2979FF),
+           which read as "the button is fading out" — most filled-button
+           UIs (Dropbox, Material, Apple) go DARKER on hover to feel like
+           the surface is responding to the cursor. Now Hover = ~8%
+           darker, Deep (pressed) = ~25% darker. Subtle, elegant — the
+           button shifts state without flashing a different colour. -->
+      <SolidColorBrush x:Key="DM.Brush.Accent"          Color="#FF0061FF"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentHover"     Color="#FF0057E6"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentDeep"      Color="#FF0049BF"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTint"      Color="#1A0061FF"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTintHover" Color="#260061FF"/>
+      <!-- "On-tint" foreground — text colour for use on AccentTint
+           bg. Light: AccentDeep works (dark blue on pale-blue wash).
+           Dark: AccentDeep is too dark on the dark blue tint; needs
+           a -300 light shade (blue-300 from Tailwind). -->
+      <SolidColorBrush x:Key="DM.Brush.AccentTintFg"    Color="#FF0049BF"/>
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="DM.Brush.Accent"          Color="#FF3B82F6"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentHover"     Color="#FF60A5FA"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentDeep"      Color="#FF2563EB"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTint"      Color="#333B82F6"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTintHover" Color="#553B82F6"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTintFg"    Color="#FF93C5FD"/> <!-- blue-300 -->
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

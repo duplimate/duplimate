@@ -1,0 +1,1963 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- =================================================================== -->
+  <!-- Shared type scale for all three concepts. See CONCEPT.md anchors.    -->
+  <!-- Body: 14/22/400, title: 28/34/600, emphasis: SemiBold. Tabular nums. -->
+  <!-- =================================================================== -->
+
+  <!--
+    All page text styles explicitly set HorizontalAlignment="Left".
+    Why: Avalonia (like WPF) treats HorizontalAlignment="Stretch" + MaxWidth
+    as "center within the remaining slot" — so a TextBlock with MaxWidth=720
+    inside a wider StackPanel renders centered, not flush with the title
+    above it. Pinning Left here means any `MaxWidth` on a usage just
+    constrains the wrap width, without silently indenting the block.
+  -->
+  <!-- LineHeight values are sized so the line box always contains the
+       full descender + ascender of Segoe UI Variable Display. The
+       earlier pass sized them at ~1.21× the FontSize (e.g. 28/34),
+       which is fine for Latin without descenders but visibly clips
+       the "g" / "p" / "y" tails in titles like "Logs & runs". The
+       new ratio is ~1.4× for display sizes — comfortable enough to
+       absorb full descenders + a small breathing margin so multi-line
+       titles don't feel cramped. -->
+  <Style Selector="TextBlock.hero-status">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Display}"/>
+    <Setter Property="FontSize" Value="40"/>
+    <Setter Property="LineHeight" Value="56"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+    <Setter Property="TextWrapping" Value="Wrap"/>
+    <Setter Property="HorizontalAlignment" Value="Left"/>
+  </Style>
+
+  <Style Selector="TextBlock.page-title">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Display}"/>
+    <Setter Property="FontSize" Value="28"/>
+    <Setter Property="LineHeight" Value="40"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+    <Setter Property="TextWrapping" Value="Wrap"/>
+    <Setter Property="HorizontalAlignment" Value="Left"/>
+  </Style>
+
+  <Style Selector="TextBlock.page-subtitle">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="15"/>
+    <Setter Property="LineHeight" Value="24"/>
+    <Setter Property="FontWeight" Value="Normal"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgSecondary}"/>
+    <!-- 12px gap (was 10): the page-title's 34 line-height already
+         eats most of a 10px margin in descender space, leaving the
+         subtitle visually crowded against the title baseline. -->
+    <Setter Property="Margin" Value="0,12,0,0"/>
+    <Setter Property="TextWrapping" Value="Wrap"/>
+    <Setter Property="HorizontalAlignment" Value="Left"/>
+  </Style>
+
+  <!--
+    Section heading used inside cards. 16px sits between body (14) and
+    card-title (22) giving a 4-tier scale. Previous 18 sat too close to
+    card-title and made nested headings feel flat.
+  -->
+  <Style Selector="TextBlock.section-title">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Display}"/>
+    <Setter Property="FontSize" Value="16"/>
+    <Setter Property="LineHeight" Value="24"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+    <Setter Property="Margin" Value="0,0,0,10"/>
+    <Setter Property="HorizontalAlignment" Value="Left"/>
+  </Style>
+
+  <Style Selector="TextBlock.label-caps">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="11"/>
+    <Setter Property="LineHeight" Value="14"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="LetterSpacing" Value="1.0"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgSecondary}"/>
+    <Setter Property="Margin" Value="0,0,0,8"/>
+    <Setter Property="HorizontalAlignment" Value="Left"/>
+  </Style>
+
+  <Style Selector="TextBlock.body">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="LineHeight" Value="22"/>
+    <Setter Property="FontWeight" Value="Normal"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+    <Setter Property="TextWrapping" Value="Wrap"/>
+  </Style>
+
+  <Style Selector="TextBlock.dim">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="LineHeight" Value="18"/>
+    <Setter Property="FontWeight" Value="Normal"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgDim}"/>
+    <!-- Default to wrapping. Helper copy routinely gets long; NoWrap was
+         the real cause of the "button stomping text" class of layout bug. -->
+    <Setter Property="TextWrapping" Value="Wrap"/>
+  </Style>
+
+  <!--
+    Helper text under form fields — describes what a field does or
+    accepts, e.g. "Leave blank to auto-generate", "0 = unlimited",
+    retention syntax. Distinct from `dim` (which is for tertiary
+    metadata: timestamps, "+N more", row separators):
+      • Foreground is FgSecondary (#4A4740) not FgDim (#6A665C) — at
+        AA 8.9:1 it reads as instructional content, not greyed-out
+        decoration.
+      • 13/19 keeps the typographic hierarchy: smaller than body (14)
+        but readable at arm's length.
+      • Built-in 4px top margin so it sits cleanly under the input
+        without callers having to thread spacing through every form.
+  -->
+  <Style Selector="TextBlock.helper">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="LineHeight" Value="19"/>
+    <Setter Property="FontWeight" Value="Normal"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgSecondary}"/>
+    <Setter Property="TextWrapping" Value="Wrap"/>
+    <Setter Property="Margin" Value="0,4,0,0"/>
+  </Style>
+
+  <Style Selector="TextBlock.mono">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Mono}"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="LineHeight" Value="20"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgSecondary}"/>
+  </Style>
+
+  <!-- =================================================================== -->
+  <!-- Rule                                                                  -->
+  <!-- =================================================================== -->
+
+  <!--
+    Hairline divider. Zero margin so it composes cleanly inside a
+    StackPanel with Spacing — the parent's spacing provides breathing
+    room on both sides. Previous 0,16 margin combined with Spacing=22
+    produced ~76px dead bands between form sections.
+  -->
+  <Style Selector="Border.rule">
+    <Setter Property="Height" Value="1"/>
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.BorderSubtle}"/>
+    <Setter Property="Margin" Value="0"/>
+  </Style>
+
+  <!-- =================================================================== -->
+  <!-- Sidebar nav                                                           -->
+  <!-- =================================================================== -->
+
+  <Style Selector="RadioButton.nav">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="FontWeight" Value="Normal"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgSecondary}"/>
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="14,9"/>
+    <Setter Property="HorizontalContentAlignment" Value="Left"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}"
+                CornerRadius="8"
+                Margin="12,1"
+                Padding="{TemplateBinding Padding}">
+          <ContentPresenter Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"/>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <!-- Hover state on the row: the template Border picks up Background
+       via TemplateBinding, so setting it on the RadioButton itself
+       lights up the whole row. Adding a transition on Background makes
+       the hover swap feel deliberate (~140ms — slightly slower than the
+       button transition since nav rows are bigger and a faster swap
+       reads as flicker on rapid mouse movement). -->
+  <Style Selector="RadioButton.nav">
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.18" Easing="QuadraticEaseOut"/>
+      </Transitions>
+    </Setter>
+  </Style>
+  <!-- Hover: just the neutral background tint. Foreground stays
+       FgSecondary at rest so the hover doesn't combine a colour shift
+       with a tint reveal (was reading as a flash). The :checked state
+       below is what colours the foreground accent — that's a deliberate
+       commit, not a hover hint. -->
+  <Style Selector="RadioButton.nav:pointerover">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.NeutralHover}"/>
+  </Style>
+
+  <Style Selector="RadioButton.nav:checked">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.Accent}"/>
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.AccentTint}"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+  </Style>
+
+  <!-- =================================================================== -->
+  <!-- Primary button                                                        -->
+  <!--                                                                       -->
+  <!-- We ship a full ControlTemplate so Avalonia's FluentTheme Button       -->
+  <!-- template never runs. Fluent sets Background on the named template     -->
+  <!-- part (`Button /template/ ContentPresenter#PART_ContentPresenter`) at  -->
+  <!-- a specificity that wins against any external style on the Button      -->
+  <!-- itself, so style-only overrides silently get clobbered (confirmed:    -->
+  <!-- even inline `Background="Red"` on the Button does not paint). Owning  -->
+  <!-- the template is the only fully reliable way.                          -->
+  <!-- =================================================================== -->
+
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.Accent}"/>
+    <Setter Property="Foreground" Value="#FFFFFFFF"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource DM.CornerRadiusButton}"/>
+    <Setter Property="Padding" Value="22,12"/>
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="Template">
+      <ControlTemplate>
+        <!-- Calm aesthetic: solid colour, no shadow, no resting ring.
+             Earlier elaborate dual-shadow / accent-glow hover attempts
+             read as "weird" because they fight the calm-Dropbox tone
+             — the visual model for this app is "considered solid
+             surfaces", not "lifted floating cards". The hover effect
+             lives entirely in the bg/foreground transition below. -->
+        <Border Name="RootBorder"
+                Background="{TemplateBinding Background}"
+                CornerRadius="{TemplateBinding CornerRadius}">
+          <ContentPresenter Name="RootContentPresenter"
+                            Background="Transparent"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            Padding="{TemplateBinding Padding}"
+                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"/>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <!-- Pin ContentPresenter Background to Transparent across every
+       pseudo-class so Avalonia's FluentTheme `:pointerover` /
+       `:pressed` / `:disabled` rules (which target the template
+       ContentPresenter with high specificity) can't bleed through and
+       paint over our Border's bg. Without these explicit overrides the
+       FluentTheme hover BG (a tan-grey) was rendering ON TOP of our
+       NeutralHover, producing the user-flagged "weird" hover color.
+       The Border is the only element that paints — ContentPresenter
+       just hosts the text/icon content. -->
+  <Style Selector="Button.primary /template/ ContentPresenter#RootContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter#RootContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+  <Style Selector="Button.primary:pressed /template/ ContentPresenter#RootContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+  <Style Selector="Button.primary:disabled /template/ ContentPresenter#RootContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+  <!-- Hover transitions: pure background-color crossfade.
+       Timing redesign (5th iteration): 180ms is slow enough to feel
+       considered, fast enough to feel responsive. Earlier 110ms read
+       as a flicker because the colour shift was a different hue (the
+       old AccentHover was LIGHTER than Accent — a perceptible flash).
+       The accent palette now goes ~8% darker on hover (filled-button
+       convention), which combined with the slower transition feels
+       like the button is acknowledging the cursor instead of changing
+       state. Single-property change — no border, no shadow, no shift
+       in geometry. Calm. -->
+  <Style Selector="Button.primary /template/ Border#RootBorder">
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.18" Easing="QuadraticEaseOut"/>
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.primary:pointerover /template/ Border#RootBorder">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.AccentHover}"/>
+  </Style>
+  <Style Selector="Button.primary:pressed /template/ Border#RootBorder">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.AccentDeep}"/>
+  </Style>
+  <!-- Disabled state: keep the accent identity but desaturate hard.
+       A muted blue-grey reads as "Add (just not yet)" rather than the
+       broken-corner grey-with-leftover-ring the previous styling
+       produced. Foreground stays white at reduced opacity so the
+       icon + label remain legible. -->
+  <Style Selector="Button.primary:disabled /template/ Border#RootBorder">
+    <Setter Property="Background" Value="#FFB6C5DB"/>
+  </Style>
+  <Style Selector="Button.primary:disabled">
+    <Setter Property="Foreground" Value="#FFFFFFFF"/>
+    <Setter Property="Opacity" Value="0.65"/>
+  </Style>
+
+  <!-- =================================================================== -->
+  <!-- Ghost / secondary button                                              -->
+  <!-- =================================================================== -->
+
+  <Style Selector="Button.ghost">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.BorderEmphasized}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource DM.CornerRadiusButton}"/>
+    <Setter Property="Padding" Value="20,11"/>
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="Template">
+      <ControlTemplate>
+        <!-- Same custom-template pattern as Button.primary so Fluent's
+             Button template doesn't run. TemplateBindings resolve properly
+             because the default accent dict is merged at parse time in
+             App.axaml. -->
+        <Border Name="RootBorder"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{TemplateBinding CornerRadius}">
+          <ContentPresenter Name="RootContentPresenter"
+                            Background="Transparent"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            Padding="{TemplateBinding Padding}"
+                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"/>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <!-- Pin ghost ContentPresenter Background to Transparent — same
+       rationale as Button.primary above. Without this, FluentTheme's
+       `:pointerover` rule paints a tan-grey bg on the ContentPresenter
+       that overlays our Border's NeutralHover and is what the user has
+       been seeing as the "weird" hover for six iterations. -->
+  <Style Selector="Button.ghost /template/ ContentPresenter#RootContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+  <Style Selector="Button.ghost:pointerover /template/ ContentPresenter#RootContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+  <Style Selector="Button.ghost:pressed /template/ ContentPresenter#RootContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+  <Style Selector="Button.ghost:disabled /template/ ContentPresenter#RootContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+  <!-- Ghost hover redesign (7th iteration): GENTLE BG-WASH, mirroring
+       Button.restore-action's single-property hover so Edit and Restore
+       Files feel like the same animation language with different colour
+       families.
+       Iteration history:
+         1-3: dual-shadow lift + accent glow (read as "weird")
+         4: pure NeutralHover (#F1ECE0) bg fill — "muddy" on cream
+         5: same NeutralHover, single-property only — still muddy
+         6: border-only darken from BorderEmphasized → FgPrimary
+            (inky black) — read as "too harsh", side-by-side with
+            Restore's calm green wash it looked like a different
+            button family
+         7 (now): single-property bg wash from Transparent →
+            NeutralPressed (#E6E0D2). NeutralPressed is the darkest
+            neutral in the warm-cream family — distinctly more
+            visible than NeutralHover but still in-palette, so the
+            hover registers as "active" without going muddy. Border
+            stays put at BorderEmphasized; foreground stays put.
+            Transition is 180ms QuadraticEaseOut, matching
+            restore-action / verify-action / row-action-warn timings.
+       The pressed state nudges the wash one tick darker by stacking
+       BorderEmphasized over the same fill — the Border darkens
+       briefly so a click actually feels committed. -->
+  <Style Selector="Button.ghost /template/ Border#RootBorder">
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.18" Easing="QuadraticEaseOut"/>
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.ghost:pointerover /template/ Border#RootBorder">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.NeutralPressed}"/>
+  </Style>
+  <Style Selector="Button.ghost:pressed /template/ Border#RootBorder">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.NeutralPressed}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.FgSecondary}"/>
+  </Style>
+  <!-- Disabled state. Without this, Avalonia's FluentTheme default
+       disabled treatment paints a dark-charcoal solid background that
+       didn't even respect our CornerRadius — the user-flagged "bad
+       corners on the disabled Edit button" came from there. Match the
+       per-class action buttons (restore-action / verify-action) by
+       dimming the whole control via Opacity; the resting transparent
+       bg + outlined border just fade out cleanly, no chrome surprise. -->
+  <Style Selector="Button.ghost:disabled">
+    <Setter Property="Opacity" Value="0.45"/>
+  </Style>
+  <Style Selector="Button.ghost:disabled /template/ Border#RootBorder">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.BorderEmphasized}"/>
+  </Style>
+
+  <!--
+    Custom title-bar window buttons: 46×40 rectangular hit-targets,
+    transparent by default with a subtle hover tint. The close button
+    uses a red hover per Windows convention.
+  -->
+  <Style Selector="Button.win-button">
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="0"/>
+    <Setter Property="Width" Value="46"/>
+    <Setter Property="Height" Value="40"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.win-button /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="CornerRadius" Value="0"/>
+  </Style>
+  <Style Selector="Button.win-button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#1A000000"/>
+  </Style>
+  <Style Selector="Button.win-button.win-close:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#E81123"/>
+  </Style>
+  <Style Selector="Button.win-button.win-close:pointerover Path">
+    <Setter Property="Stroke" Value="#FFFFFF"/>
+  </Style>
+
+  <!--
+    Row actions — compact, minimal, inline with list rows.
+    Only show border/tint on hover so the resting list stays calm.
+  -->
+  <Style Selector="Button.row-action">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgSecondary}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.BorderEmphasized}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="6"/>
+    <Setter Property="Padding" Value="12,6"/>
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontWeight" Value="Medium"/>
+    <Setter Property="Cursor" Value="Hand"/>
+  </Style>
+  <Style Selector="Button.row-action /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <!-- Resting border picks up BorderEmphasized so the button has a
+         visible outline at rest (Edit on a destination chip used to
+         render as plain text, which the user couldn't tell was a
+         button). On hover we darken the border to FgPrimary — same
+         "border-only" hover language as Button.ghost (6th iteration).
+         No interior fill, no foreground colour shift. -->
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.BorderEmphasized}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="6"/>
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.14" Easing="QuadraticEaseOut"/>
+        <BrushTransition Property="Background"  Duration="0:0:0.14" Easing="QuadraticEaseOut"/>
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.row-action:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+  </Style>
+  <Style Selector="Button.row-action:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.NeutralPressed}"/>
+  </Style>
+
+  <!-- Row-level danger action (Stop a run, Delete a row). Earlier this
+       was plain text on transparent which read as "is this even
+       clickable?". Now sits in a faint red wash with a visible red
+       border at rest, deepens on hover. Same shape as row-action so
+       it lines up next to Edit/Delete cleanly. -->
+  <!-- Mantine v7 "light" variant — verbatim port. Recipe:
+         resting:  bg=shade-1, fg=shade-9, border=shade-9 (light mode
+                   only — user-asked faint outline matching the text);
+                   border is Transparent in dark mode.
+         hover:    bg=shade-2 (deeper), fg + border stay put
+       Theme-aware: light theme uses pale-tinted bg + dark tonal text;
+       dark theme uses dark-tinted bg + pale tonal text. Source:
+       mantinedev/mantine — get-css-color-variables.ts. -->
+  <Style Selector="Button.row-action-danger">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.DangerLightFg}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.DangerLightBorder}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="6"/>
+    <Setter Property="Padding" Value="12,6"/>
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Cursor" Value="Hand"/>
+  </Style>
+  <Style Selector="Button.row-action-danger /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.DangerLightBg}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.DangerLightBorder}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="6"/>
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.14" Easing="QuadraticEaseOut"/>
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.row-action-danger:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.DangerLightBgHover}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource DM.Brush.DangerLightFg}"/>
+  </Style>
+  <Style Selector="Button.row-action-danger:disabled">
+    <Setter Property="Opacity" Value="0.45"/>
+  </Style>
+
+  <!--
+    Destructive — used on actions that lose data (Erase storage, Stop a
+    run, the OVERWRITE confirm). Outline-only on cream read quieter than
+    the ghost button next to it; a faint red wash at rest gives the
+    button visual weight without screaming. Hover deepens the wash.
+  -->
+  <!-- Mantine v7 "light" variant — see Button.row-action-danger.
+       Used for window-level destructive confirms ("Stop a run",
+       "Proceed (overwrite)", "Cancel restore"). -->
+  <Style Selector="Button.danger">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.DangerLightFg}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.DangerLightBorder}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource DM.CornerRadiusButton}"/>
+    <Setter Property="Padding" Value="20,11"/>
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Cursor" Value="Hand"/>
+  </Style>
+  <Style Selector="Button.danger /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.DangerLightBg}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.DangerLightBorder}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource DM.CornerRadiusButton}"/>
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.14" Easing="QuadraticEaseOut"/>
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.DangerLightBgHover}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource DM.Brush.DangerLightFg}"/>
+  </Style>
+  <Style Selector="Button.danger:disabled">
+    <Setter Property="Opacity" Value="0.45"/>
+  </Style>
+
+  <!-- Glyph colour for action-button PathIcon children (Restore /
+       Trash / Edit / Skip-forward icons inside the buttons). PathIcon
+       does NOT inherit Foreground from the parent Button — it has its
+       own Foreground property defaulting to FluentTheme's value
+       (black in light mode / near-white in dark mode). Without these
+       descendant selectors the user reported "the icon before
+       Restore files / Delete is still black". -->
+  <Style Selector="Button.restore-action PathIcon">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.SuccessLightFg}"/>
+  </Style>
+  <Style Selector="Button.row-action-danger PathIcon">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.DangerLightFg}"/>
+  </Style>
+
+  <!-- "row-action-critical" — Mantine `filled` red variant, used for
+       actions one tier above row-action-danger. The user asked for "a
+       colour stronger than red" to differentiate Erase (wipes ALL
+       data forever) from Remove (just unhooks the destination). Solid
+       red bg + white text is visually heavier than the light-variant
+       pale-red bg + dark-red text Remove uses — same Mantine taxonomy
+       (light → filled), just one level up. -->
+  <Style Selector="Button.row-action-critical">
+    <Setter Property="Foreground" Value="White"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="6"/>
+    <Setter Property="Padding" Value="12,6"/>
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Cursor" Value="Hand"/>
+  </Style>
+  <Style Selector="Button.row-action-critical /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.DangerFilledBg}"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="6"/>
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.14" Easing="QuadraticEaseOut"/>
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.row-action-critical:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.DangerFilledBgHover}"/>
+    <Setter Property="TextElement.Foreground" Value="White"/>
+  </Style>
+  <Style Selector="Button.row-action-critical PathIcon">
+    <Setter Property="Foreground" Value="White"/>
+  </Style>
+  <Style Selector="Button.row-action-critical:disabled">
+    <Setter Property="Opacity" Value="0.45"/>
+  </Style>
+  <Style Selector="Button.row-action-warn PathIcon">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.WarnLightFg}"/>
+  </Style>
+  <Style Selector="Button.danger PathIcon">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.DangerLightFg}"/>
+  </Style>
+
+  <!-- =================================================================== -->
+  <!-- Inputs                                                                -->
+  <!-- =================================================================== -->
+
+  <Style Selector="TextBox">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="FontWeight" Value="Normal"/>
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.BgElevated}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.BorderEmphasized}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource DM.CornerRadiusSmall}"/>
+    <Setter Property="Padding" Value="12,10"/>
+    <Setter Property="CaretBrush" Value="{DynamicResource DM.Brush.Accent}"/>
+    <Setter Property="SelectionBrush" Value="{DynamicResource DM.Brush.AccentTint}"/>
+  </Style>
+
+  <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.Accent}"/>
+    <Setter Property="BorderThickness" Value="2"/>
+  </Style>
+
+  <!--
+    Watermark color override. The FluentTheme TextBox template hard-codes
+    Opacity="0.5" inline on PART_Watermark, which is a TEMPLATE value that
+    a downstream Style cannot override from a Setter. We confirmed by
+    setting Foreground to a striking color (visible) while Opacity=1 was
+    ignored (still 50% transparent). The clean fix is below: a custom
+    TextBox template that omits the opacity hack and pulls watermark
+    Foreground from a brush we control. We keep all the FluentTheme
+    machinery the rest of the app depends on (PART_BorderElement focus
+    border, PART_TextPresenter for selection, DataValidationErrors host).
+  -->
+  <Style Selector="TextBox">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <DataValidationErrors>
+          <Panel>
+            <Border Name="PART_BorderElement"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="{TemplateBinding CornerRadius}"
+                    MinWidth="{TemplateBinding MinWidth}"
+                    MinHeight="{TemplateBinding MinHeight}"/>
+            <Border Margin="{TemplateBinding BorderThickness}">
+              <Grid ColumnDefinitions="Auto,*,Auto"
+                    Margin="{TemplateBinding Padding}">
+                <ContentPresenter Grid.Column="0"
+                                  Grid.ColumnSpan="1"
+                                  Content="{TemplateBinding InnerLeftContent}"/>
+                <DockPanel Grid.Column="1"
+                           Margin="{TemplateBinding InnerLeftContent, Converter={x:Static ObjectConverters.IsNotNull}, ConverterParameter=8}"
+                           VerticalAlignment="Center">
+                  <ScrollViewer Name="PART_ScrollViewer"
+                                HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
+                                VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}"
+                                IsScrollChainingEnabled="{TemplateBinding (ScrollViewer.IsScrollChainingEnabled)}"
+                                AllowAutoHide="{TemplateBinding (ScrollViewer.AllowAutoHide)}"
+                                BringIntoViewOnFocusChange="{TemplateBinding (ScrollViewer.BringIntoViewOnFocusChange)}">
+                    <Panel>
+                      <TextBlock Name="PART_Watermark"
+                                 Text="{TemplateBinding Watermark}"
+                                 TextAlignment="{TemplateBinding TextAlignment}"
+                                 TextWrapping="{TemplateBinding TextWrapping}"
+                                 FontFamily="{TemplateBinding FontFamily}"
+                                 FontSize="{TemplateBinding FontSize}"
+                                 FontStyle="{TemplateBinding FontStyle}"
+                                 FontWeight="{TemplateBinding FontWeight}"
+                                 Foreground="{DynamicResource DM.Brush.FgSecondary}"
+                                 IsVisible="{TemplateBinding Text, Converter={x:Static StringConverters.IsNullOrEmpty}}"
+                                 HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                 VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                      <TextPresenter Name="PART_TextPresenter"
+                                     Text="{TemplateBinding Text, Mode=TwoWay}"
+                                     CaretIndex="{TemplateBinding CaretIndex}"
+                                     SelectionStart="{TemplateBinding SelectionStart}"
+                                     SelectionEnd="{TemplateBinding SelectionEnd}"
+                                     TextAlignment="{TemplateBinding TextAlignment}"
+                                     TextWrapping="{TemplateBinding TextWrapping}"
+                                     LineHeight="{TemplateBinding LineHeight}"
+                                     LetterSpacing="{TemplateBinding LetterSpacing}"
+                                     PasswordChar="{TemplateBinding PasswordChar}"
+                                     RevealPassword="{TemplateBinding RevealPassword}"
+                                     SelectionBrush="{TemplateBinding SelectionBrush}"
+                                     SelectionForegroundBrush="{TemplateBinding SelectionForegroundBrush}"
+                                     CaretBrush="{TemplateBinding CaretBrush}"
+                                     HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                     VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    </Panel>
+                  </ScrollViewer>
+                </DockPanel>
+                <ContentPresenter Grid.Column="2"
+                                  Grid.ColumnSpan="1"
+                                  Content="{TemplateBinding InnerRightContent}"/>
+              </Grid>
+            </Border>
+          </Panel>
+        </DataValidationErrors>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="ComboBox">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.BgElevated}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.BorderEmphasized}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource DM.CornerRadiusSmall}"/>
+    <Setter Property="Padding" Value="12,9"/>
+    <Setter Property="PlaceholderForeground" Value="{DynamicResource DM.Brush.FgDim}"/>
+  </Style>
+
+  <!--
+    NumericUpDown — Fluent's default chrome doesn't match our TextBox
+    so a row mixing the two reads ragged. The control internally is a
+    ButtonSpinner wrapping a TextBox; the visible border / radius is on
+    the ButtonSpinner, and the TextBox sits inside it with its own
+    chrome. Setting these on the OUTER NumericUpDown alone has no
+    effect — we have to target the template parts directly.
+
+    We also center the digits vertically (Fluent leaves them top-aligned
+    inside the 40px row) so a small number reads centered in the input
+    instead of hugging the top edge.
+  -->
+  <Style Selector="NumericUpDown">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+    <Setter Property="MinHeight" Value="40"/>
+    <Setter Property="HorizontalContentAlignment" Value="Left"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+
+  <!-- The ButtonSpinner inside the template carries the visible border +
+       corner radius. Match TextBox so a column of mixed inputs reads
+       cleanly. -->
+  <Style Selector="NumericUpDown /template/ ButtonSpinner">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.BgElevated}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.BorderEmphasized}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource DM.CornerRadiusSmall}"/>
+    <Setter Property="MinHeight" Value="40"/>
+  </Style>
+
+  <!-- Inner TextBox sits inside the ButtonSpinner; let the spinner own
+       the chrome, transparent + borderless here. Center text vertically
+       so the digits don't crowd the top of the 40px row. -->
+  <Style Selector="NumericUpDown /template/ TextBox">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="0"/>
+    <Setter Property="Padding" Value="12,0"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+  </Style>
+
+  <!-- Focus outline lives on the ButtonSpinner so the whole control
+       (including the up/down arrows) lights up together when focused. -->
+  <Style Selector="NumericUpDown:focus-within /template/ ButtonSpinner">
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.Accent}"/>
+    <Setter Property="BorderThickness" Value="2"/>
+  </Style>
+
+  <!--
+    TimePicker — Fluent's default template baseline-anchors the digits
+    (the "20" / "00" inside each segment) which reads as bottom-aligned
+    in our 40px row, especially against the larger TextBox/ComboBox
+    siblings. Pin VerticalContentAlignment on the inner buttons + the
+    overall control height so the segments sit centered.
+  -->
+  <!--
+    TimePicker — Fluent's default template uses asymmetric padding on
+    each segment TextBlock (PART_HourTextBlock, PART_MinuteTextBlock,
+    PART_PeriodTextBlock) so digits hang low against neighbouring 40px
+    inputs. Pin VerticalAlignment + zero padding on every named segment,
+    plus center the outer button content, so the whole control reads
+    optically centered. Earlier we only targeted "TimePicker /template/
+    TextBlock" with VerticalAlignment, which Fluent's local-padding rule
+    won and so digits stayed bottom-baseline.
+  -->
+  <Style Selector="TimePicker">
+    <Setter Property="MinHeight" Value="40"/>
+  </Style>
+  <Style Selector="TimePicker /template/ Button">
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+  </Style>
+  <Style Selector="TimePicker /template/ TextBlock">
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="Padding" Value="0"/>
+  </Style>
+  <Style Selector="TimePicker /template/ TextBlock#PART_HourTextBlock">
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="Padding" Value="0"/>
+  </Style>
+  <Style Selector="TimePicker /template/ TextBlock#PART_MinuteTextBlock">
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="Padding" Value="0"/>
+  </Style>
+  <Style Selector="TimePicker /template/ TextBlock#PART_PeriodTextBlock">
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="Padding" Value="0"/>
+  </Style>
+
+  <!-- =================================================================== -->
+  <!-- PathIcon — stroke-based rendering for Lucide-style icons              -->
+  <!--                                                                       -->
+  <!-- Avalonia's default PathIcon template fills with Foreground. Lucide    -->
+  <!-- paths are stroke-only (e.g. "M12 5v14M5 12h14" is two line segments   -->
+  <!-- with zero fill area) so they render invisible under the default       -->
+  <!-- template. We override globally to stroke at 2px with round caps/joins -->
+  <!-- so the whole icon set shows up consistently.                          -->
+  <!--                                                                       -->
+  <!-- Icons that are genuinely closed-fill (rectangles, filled dots) still  -->
+  <!-- render fine as strokes — they just become outlined instead of solid,  -->
+  <!-- which is the intended Lucide look anyway.                             -->
+  <!-- =================================================================== -->
+
+  <Style Selector="PathIcon">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <!-- Inner Padding=2 reserves a 1-stroke-width band around the
+             path so circle/clock outlines whose geometry runs to the
+             24-unit edge don't get clipped at the right/bottom of the
+             icon's render box. Without this, Lucide-style icons like
+             Icon.Clock visibly clipped (user-reported on the Restore
+             empty state). The Viewbox scales the inner Path uniformly,
+             so the visual bounds shrink slightly — undetectable for
+             rectangle / arrow icons, but the difference between
+             "circle just fits" and "circle visibly clipped" is what
+             we actually care about. -->
+        <Viewbox Stretch="Uniform">
+          <Border Padding="2">
+            <Path Data="{TemplateBinding Data}"
+                  Stroke="{TemplateBinding Foreground}"
+                  StrokeThickness="2"
+                  StrokeLineCap="Round"
+                  StrokeJoin="Round"
+                  Fill="Transparent"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"/>
+          </Border>
+        </Viewbox>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <!-- "filled" variant: icons whose geometry IS the silhouette
+       (favicon-style brand marks like the GitHub Octocat). The path
+       data uses fill-rule=evenodd to cut the cat shape OUT of a disc;
+       rendering it stroked would draw the outline of both the disc
+       and the cut-out, which looks wrong. This variant fills with
+       Foreground and skips the stroke. No padding hack — filled
+       silhouettes don't have stroke overflow. -->
+  <Style Selector="PathIcon.filled">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Viewbox Stretch="Uniform">
+          <Path Data="{TemplateBinding Data}"
+                Fill="{TemplateBinding Foreground}"
+                Stroke="Transparent"
+                StrokeThickness="0"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"/>
+        </Viewbox>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <!-- =================================================================== -->
+  <!-- Status icon — replaces the leading status-dot on backup cards and    -->
+  <!-- the health banner. PathIcon Data + Foreground driven by class so a   -->
+  <!-- single bound StatusClass string ("ok"/"warn"/"fail"/"skipped"/        -->
+  <!-- "running"/"idle") flips both glyph and colour together. The user      -->
+  <!-- read the previous coloured-dot vocabulary as ambiguous (a red dot    -->
+  <!-- could equally mean "failed", "live", or just "exists"). Semantic     -->
+  <!-- glyphs say what the dot used to imply.                                -->
+  <!-- =================================================================== -->
+  <!-- DynamicResource (not StaticResource) is required for Data setters
+       in this dictionary: Icons.axaml is merged into the App at runtime,
+       so a StaticResource lookup at Controls.axaml parse time fails
+       with "Static resource 'Icon.X' not found". DynamicResource defers
+       the lookup until the resource tree is fully assembled. -->
+  <Style Selector="PathIcon.status-icon">
+    <Setter Property="Width" Value="16"/>
+    <Setter Property="Height" Value="16"/>
+    <Setter Property="HorizontalAlignment" Value="Center"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="Data" Value="{DynamicResource Icon.Idle}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.BorderEmphasized}"/>
+  </Style>
+  <!-- No per-glyph Margin compensation — the Icon.Check path itself
+       is now drawn around (12,12) by construction (see Icons.axaml),
+       so it sits visually centred inside the disc without a hack. -->
+  <!-- Tone mapping the user asked for explicitly:
+         blue   = running   → Accent / AccentTint
+         green  = ok        → Success / SuccessTint  (was Accent — mis-read as
+                              "running" because both shared the blue family)
+         orange = skipped   → Warn / WarnTint        (was FgDim grey)
+         orange = warn      → Warn / WarnTint
+         red    = fail      → Danger / DangerTint
+         neutral grey = idle (never run yet) -->
+  <Style Selector="PathIcon.status-icon.ok">
+    <Setter Property="Data" Value="{DynamicResource Icon.Check}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.Success}"/>
+  </Style>
+  <Style Selector="PathIcon.status-icon.warn">
+    <Setter Property="Data" Value="{DynamicResource Icon.Warn}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.Warn}"/>
+  </Style>
+  <Style Selector="PathIcon.status-icon.fail">
+    <Setter Property="Data" Value="{DynamicResource Icon.Fail}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.Danger}"/>
+  </Style>
+  <Style Selector="PathIcon.status-icon.skipped">
+    <Setter Property="Data" Value="{DynamicResource Icon.Skipped}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.Warn}"/>
+  </Style>
+  <Style Selector="PathIcon.status-icon.running">
+    <Setter Property="Data" Value="{DynamicResource Icon.Running}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.Accent}"/>
+  </Style>
+  <Style Selector="PathIcon.status-icon.idle">
+    <Setter Property="Data" Value="{DynamicResource Icon.Idle}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.BorderEmphasized}"/>
+  </Style>
+  <!-- Verify-specific tones. "stale" is "verified but >30d ago" so
+       it carries a warn (not danger) signal; "never" is identical to
+       idle but kept as a separate class so future styling can diverge
+       (e.g. a hint glyph encouraging the user to run a test restore). -->
+  <Style Selector="PathIcon.status-icon.stale">
+    <Setter Property="Data" Value="{DynamicResource Icon.Warn}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.Warn}"/>
+  </Style>
+  <Style Selector="PathIcon.status-icon.never">
+    <Setter Property="Data" Value="{DynamicResource Icon.HeartPulse}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgDim}"/>
+  </Style>
+  <!-- Schedule-specific tones for the NEXT row badge. "scheduled" is
+       accent blue with a clock; "manual" is a neutral pause-circle
+       indicating no auto-run. -->
+  <Style Selector="PathIcon.status-icon.scheduled">
+    <Setter Property="Data" Value="{DynamicResource Icon.Clock}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.Accent}"/>
+  </Style>
+  <Style Selector="PathIcon.status-icon.manual">
+    <Setter Property="Data" Value="{DynamicResource Icon.Clock}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgDim}"/>
+  </Style>
+
+  <!-- =====================================================================
+       Status dot — small, filled, fully-saturated colour pip. Earlier
+       iterations of this element were a 28-px tinted disc holding a
+       stroked glyph (check / warn-triangle / x-circle); the user found
+       the disc-plus-glyph composition fussy and felt the asymmetric V
+       of the check never sat optically centred. The redesign drops
+       both the disc and the glyph: the dot itself, sized and coloured
+       like a UI status pip (think GitHub PR-state circles, macOS
+       traffic-light dots), is now the entire affordance. Meaning
+       lives in the colour + the adjacent label, not in a glyph.
+
+       Sized at 10 px so it reads as a status indicator rather than a
+       button or a mark. No border — the saturated fill against the
+       cream surface gives it enough definition without a ring. -->
+  <Style Selector="Border.status-badge">
+    <Setter Property="Width" Value="10"/>
+    <Setter Property="Height" Value="10"/>
+    <Setter Property="CornerRadius" Value="999"/>
+    <Setter Property="HorizontalAlignment" Value="Center"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <!-- Default: neutral grey for "idle / never / manual" classes
+         that don't supply their own tone. -->
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.BorderEmphasized}"/>
+  </Style>
+  <Style Selector="Border.status-badge.ok">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.Success}"/>
+  </Style>
+  <Style Selector="Border.status-badge.warn">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.Warn}"/>
+  </Style>
+  <Style Selector="Border.status-badge.skipped">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.Warn}"/>
+  </Style>
+  <Style Selector="Border.status-badge.fail">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.Danger}"/>
+  </Style>
+  <Style Selector="Border.status-badge.running">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.Accent}"/>
+  </Style>
+  <Style Selector="Border.status-badge.idle">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.BorderEmphasized}"/>
+  </Style>
+  <Style Selector="Border.status-badge.stale">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.Warn}"/>
+  </Style>
+  <Style Selector="Border.status-badge.never">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.BorderEmphasized}"/>
+  </Style>
+  <Style Selector="Border.status-badge.scheduled">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.Accent}"/>
+  </Style>
+  <Style Selector="Border.status-badge.manual">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.BorderEmphasized}"/>
+  </Style>
+
+  <!-- =====================================================================
+       meta-row value text — companion to the status-badge above. Tone
+       modifiers tint the value text only when the state demands user
+       attention (fail / warn / stale). Successful + scheduled rows stay
+       neutral so the page isn't a wash of colour; the badge alone
+       carries the "all good" signal. The user's complaint about the
+       previous all-grey rows: "this is not visual enough (bland text),
+       please do much better UX-wise so the user can immediately
+       understand things without even reading the text." This style
+       set + the badges are how the row's state becomes glanceable.
+       ===================================================================== -->
+  <Style Selector="TextBlock.meta-value">
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="TextWrapping" Value="Wrap"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+  </Style>
+  <Style Selector="TextBlock.meta-value.fail">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.Danger}"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+  </Style>
+  <Style Selector="TextBlock.meta-value.warn">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.Warn}"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+  </Style>
+  <Style Selector="TextBlock.meta-value.stale">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.Warn}"/>
+  </Style>
+  <Style Selector="TextBlock.meta-value.skipped">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.Warn}"/>
+  </Style>
+  <Style Selector="TextBlock.meta-value.manual">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgSecondary}"/>
+  </Style>
+  <Style Selector="TextBlock.meta-value.never">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgSecondary}"/>
+    <Setter Property="FontStyle" Value="Italic"/>
+  </Style>
+
+  <!-- =====================================================================
+       Verify callout — inline row pairing the verify status text with
+       the Test restore action. Earlier shape was a full-width tinted
+       strip with a coloured border that the user said was "way too
+       prominent". Toned down to a borderless inline row with just a
+       thin top separator delimiting it from the sources/destinations
+       grid above; the status badge alone (red / orange / green) carries
+       the tone signal.
+       ===================================================================== -->
+  <Style Selector="Border.verify-callout">
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.BorderSubtle}"/>
+    <Setter Property="BorderThickness" Value="0,1,0,0"/>
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+
+  <!-- =====================================================================
+       Count display — large accent number + small caps word. Used for
+       "2 Backups" in BackupsView's toolbar and "3 destinations" in
+       DestinationsView's toolbar. The user reported the previous plain
+       "2 Backups" / "3 destinations" labels read as bland; this shape
+       gives the count visual presence (figure in display font, accent
+       colour) while keeping the word small enough that it doesn't
+       compete with the page title.
+       ===================================================================== -->
+  <Style Selector="TextBlock.count-figure">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Display}"/>
+    <Setter Property="FontSize" Value="32"/>
+    <Setter Property="LineHeight" Value="34"/>
+    <Setter Property="FontWeight" Value="Bold"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.AccentDeep}"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="TextBlock.count-word">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="12"/>
+    <Setter Property="LineHeight" Value="14"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="LetterSpacing" Value="1.2"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgSecondary}"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+
+  <!-- =====================================================================
+       Backup-card name — slightly more refined than tile-title (which
+       is the broader display heading used elsewhere). Tighter
+       letterspacing + display font keeps the name reading as a card
+       headline rather than a flat label, addressing the user's
+       feedback that the previous tile-title rendering was bland.
+       ===================================================================== -->
+  <Style Selector="TextBlock.backup-card-name">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Display}"/>
+    <Setter Property="FontSize" Value="22"/>
+    <Setter Property="LineHeight" Value="28"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="LetterSpacing" Value="-0.3"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+
+  <!-- Attention-pill: tone-coded click-to-jump button rendering one
+       affected backup. The user's rule for the health banner is that
+       backup names appear EXACTLY ONCE — only here, only on
+       interactive controls. So the pill leans hard into "I am
+       clickable":
+         - tinted background matching the status (fail/warn/skipped/
+           idle) so the pill itself signals severity
+         - bold name + leading status icon
+         - trailing chevron that slides right on hover (Margin
+           transition) — the "goes somewhere" affordance
+         - hand cursor + visible hover state
+       Counts elsewhere in the banner deliberately stay as plain
+       typography so they don't compete with these for attention. -->
+  <!-- Mantine v7 "light" variant pill. Per Mantine spec:
+         resting: bg = shade-1, fg = shade-9, border = transparent
+         hover:   bg = shade-2 (deepen only — fg stays put, no white flip)
+       Earlier this pill used a saturated solid-on-hover with white
+       text — that's not Mantine's `light` variant, it's their
+       `filled`. Aligned to spec so the warning-banner pills and the
+       row-level action buttons share one visual language. -->
+  <Style Selector="Button.attention-pill">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.BgSurface}"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="999"/>
+    <Setter Property="Padding" Value="10,5,8,5"/>
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="12"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.attention-pill /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{TemplateBinding Background}"/>
+    <Setter Property="BorderBrush" Value="{TemplateBinding BorderBrush}"/>
+    <Setter Property="BorderThickness" Value="{TemplateBinding BorderThickness}"/>
+    <Setter Property="CornerRadius" Value="999"/>
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.14" Easing="QuadraticEaseOut"/>
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <!-- Resting tone variants — Mantine light recipe (shade-1 bg +
+       shade-9 fg). Border = LightBorder (faint LightFg in light mode,
+       transparent in dark mode). Idle keeps a neutral treatment. -->
+  <Style Selector="Button.attention-pill.fail">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.DangerLightBg}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.DangerLightFg}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.DangerLightBorder}"/>
+  </Style>
+  <Style Selector="Button.attention-pill.warn">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.WarnLightBg}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.WarnLightFg}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.WarnLightBorder}"/>
+  </Style>
+  <Style Selector="Button.attention-pill.skipped">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.WarnLightBg}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.WarnLightFg}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.WarnLightBorder}"/>
+  </Style>
+  <Style Selector="Button.attention-pill.idle">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.NeutralHover}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+  </Style>
+
+  <!-- Hover: deepen bg one Mantine step (shade-2 / darker dark-tint).
+       TextElement.Foreground MUST also be re-asserted on the
+       ContentPresenter — FluentTheme's `Button:pointerover` style
+       sets TextElement.Foreground on the template, which TextBlock
+       descendants read via inheritance. Without this setter, the
+       label text flips to FluentTheme's default hover colour (white
+       in dark mode, black in light mode) — the user-reported "hover
+       text colour is still black" bug. Verified by introspection in
+       AttentionPillScreenshotTests. -->
+  <Style Selector="Button.attention-pill.fail:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.DangerLightBgHover}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource DM.Brush.DangerLightFg}"/>
+  </Style>
+  <Style Selector="Button.attention-pill.warn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.WarnLightBgHover}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource DM.Brush.WarnLightFg}"/>
+  </Style>
+  <Style Selector="Button.attention-pill.skipped:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.WarnLightBgHover}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource DM.Brush.WarnLightFg}"/>
+  </Style>
+  <Style Selector="Button.attention-pill.idle:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.NeutralPressed}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+  </Style>
+
+  <Style Selector="Button.attention-pill:disabled">
+    <Setter Property="Opacity" Value="0.45"/>
+  </Style>
+
+  <!-- Trailing chevron inside the pill. Slides right on hover so the
+       glyph "leads forward". The colour is forced to match the pill's
+       text in each tone (Mantine spec: leading + trailing glyphs +
+       text are all the same colour in the `light` variant). -->
+  <Style Selector="PathIcon.attention-pill-chevron">
+    <Setter Property="Margin" Value="2,0,0,0"/>
+    <Setter Property="Transitions">
+      <Transitions>
+        <ThicknessTransition Property="Margin" Duration="0:0:0.18" Easing="QuadraticEaseOut"/>
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.attention-pill:pointerover PathIcon.attention-pill-chevron">
+    <Setter Property="Margin" Value="6,0,-4,0"/>
+  </Style>
+
+  <!-- Leading status-icon + trailing chevron colour. Both must match
+       the pill's text colour per Mantine `light` recipe — the
+       earlier "flip to white on hover" was wrong (that's Mantine's
+       `filled` variant). Selectors include the PathIcon's own class
+       (.status-icon or .attention-pill-chevron) so they win over
+       `PathIcon.status-icon.{tone}` (defined earlier in this file)
+       on Avalonia's specificity calc — a bare `Button.X PathIcon`
+       descendant selector tied at specificity with the icon's class
+       rules and could lose the cascade. -->
+  <Style Selector="Button.attention-pill.fail PathIcon.status-icon,
+                   Button.attention-pill.fail PathIcon.attention-pill-chevron">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.DangerLightFg}"/>
+  </Style>
+  <Style Selector="Button.attention-pill.warn PathIcon.status-icon,
+                   Button.attention-pill.warn PathIcon.attention-pill-chevron,
+                   Button.attention-pill.skipped PathIcon.status-icon,
+                   Button.attention-pill.skipped PathIcon.attention-pill-chevron">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.WarnLightFg}"/>
+  </Style>
+  <Style Selector="Button.attention-pill.idle PathIcon.status-icon,
+                   Button.attention-pill.idle PathIcon.attention-pill-chevron">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+  </Style>
+
+  <!-- =================================================================== -->
+  <!-- Cards / surface panels                                                -->
+  <!-- =================================================================== -->
+
+  <Style Selector="Border.surface">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.BgSurface}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.BorderSubtle}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource DM.CornerRadius}"/>
+    <Setter Property="Padding" Value="32,26"/>
+  </Style>
+
+  <!--
+    Empty-state card used across Dashboard / Backups / Destinations / Restore.
+    Pinned to the left (so it doesn't center-float at wide window widths) with
+    a capped width so the prose stays comfortable to read.
+  -->
+  <Style Selector="Border.empty-state">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.BgSurface}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.BorderSubtle}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource DM.CornerRadius}"/>
+    <Setter Property="Padding" Value="36,32,40,36"/>
+    <Setter Property="HorizontalAlignment" Value="Left"/>
+    <Setter Property="MaxWidth" Value="720"/>
+  </Style>
+
+  <!--
+    Badge used at the top-left of an empty-state card. Accent-tinted rounded
+    square that hosts a single Lucide-style PathIcon, so every empty state
+    picks up an at-a-glance visual anchor without us needing proper artwork.
+  -->
+  <Style Selector="Border.empty-state-glyph">
+    <Setter Property="Width" Value="52"/>
+    <Setter Property="Height" Value="52"/>
+    <Setter Property="CornerRadius" Value="14"/>
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.AccentTint}"/>
+    <Setter Property="VerticalAlignment" Value="Top"/>
+  </Style>
+  <Style Selector="Border.empty-state-glyph PathIcon">
+    <Setter Property="Width" Value="26"/>
+    <Setter Property="Height" Value="26"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.Accent}"/>
+    <Setter Property="HorizontalAlignment" Value="Center"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+
+  <!--
+    Small accent-tinted square that hosts a section-leading icon on Settings
+    cards. Scaled-down sibling of empty-state-glyph; pairs with section-title.
+  -->
+  <Style Selector="Border.section-glyph">
+    <Setter Property="Width" Value="32"/>
+    <Setter Property="Height" Value="32"/>
+    <Setter Property="CornerRadius" Value="8"/>
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.AccentTint}"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Border.section-glyph PathIcon">
+    <Setter Property="Width" Value="16"/>
+    <Setter Property="Height" Value="16"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.Accent}"/>
+    <Setter Property="HorizontalAlignment" Value="Center"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+
+  <!-- Big heading used inside empty-state cards. -->
+  <Style Selector="TextBlock.card-title">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Display}"/>
+    <Setter Property="FontSize" Value="22"/>
+    <Setter Property="LineHeight" Value="32"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+    <Setter Property="TextWrapping" Value="Wrap"/>
+    <Setter Property="HorizontalAlignment" Value="Left"/>
+  </Style>
+
+  <!-- Heading used on dashboard tile cards (smaller than card-title). -->
+  <Style Selector="TextBlock.tile-title">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Display}"/>
+    <Setter Property="FontSize" Value="20"/>
+    <Setter Property="LineHeight" Value="30"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+    <Setter Property="HorizontalAlignment" Value="Left"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+
+  <!-- Row name heading used in list rows (Backups, Destinations). -->
+  <Style Selector="TextBlock.row-title">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="15"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+    <Setter Property="HorizontalAlignment" Value="Left"/>
+  </Style>
+
+  <!-- Large numeric readouts (restore progress tiles). -->
+  <Style Selector="TextBlock.stat-value">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Display}"/>
+    <Setter Property="FontSize" Value="22"/>
+    <Setter Property="LineHeight" Value="28"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+    <Setter Property="HorizontalAlignment" Value="Left"/>
+  </Style>
+
+  <Style Selector="Border.section">
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.BorderSubtle}"/>
+    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+    <Setter Property="Padding" Value="0,0,0,22"/>
+    <Setter Property="Margin" Value="0,0,0,26"/>
+  </Style>
+
+  <Style Selector="Border.callout">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.AccentTint}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource DM.CornerRadiusSmall}"/>
+    <Setter Property="Padding" Value="18,14"/>
+    <Setter Property="BorderThickness" Value="0"/>
+  </Style>
+
+  <!-- =================================================================== -->
+  <!-- Expander.advanced                                                    -->
+  <!-- Quiet collapsible section for power-user knobs. Header is a small
+       caps "ADVANCED" with a chevron that rotates 90° on open; the
+       FluentTheme default is a chunky panel-in-panel which the user
+       called out as "not Good UX". Override the template-level
+       background / border so the expander reads as part of the parent
+       surface, not a nested card.
+  -->
+  <Style Selector="Expander.advanced">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="Expander.advanced /template/ ToggleButton#ExpanderHeader">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="0,4"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="HorizontalContentAlignment" Value="Left"/>
+  </Style>
+  <Style Selector="Expander.advanced /template/ ToggleButton#ExpanderHeader:pointerover">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+  <Style Selector="Expander.advanced /template/ ToggleButton#ExpanderHeader:pressed">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+  <Style Selector="Expander.advanced /template/ ToggleButton#ExpanderHeader:checked">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+  <!-- Header text: caps + dim, small chevron via the template's own
+       glyph slot. The rotation transition stays as the FluentTheme
+       defaults — it animates from 0° to 90° on expand. -->
+  <Style Selector="Expander.advanced /template/ ContentPresenter#PART_HeaderPresenter">
+    <Setter Property="TextElement.FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="TextElement.FontSize" Value="11"/>
+    <Setter Property="TextElement.FontWeight" Value="SemiBold"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource DM.Brush.FgSecondary}"/>
+  </Style>
+  <Style Selector="Expander.advanced /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+  </Style>
+
+  <!--
+    Master-toggle chrome — used to flag the "this is the gateway control
+    of this card" checkbox: Schedule's "Run automatically" master switch,
+    Destination editor's "Encrypt storage" toggle, etc. AccentTint wash
+    so the eye lands on it before the rest of the card's settings. The
+    contained CheckBox keeps its normal styling; the wrapper just gives
+    it spatial weight.
+  -->
+  <Style Selector="Border.master-toggle">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.AccentTint}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource DM.CornerRadiusSmall}"/>
+    <!-- Bumped from 14,10. The master toggle is the gateway control of
+         its card; matching the surrounding card's vertical rhythm makes
+         the eye land on it instead of treating it as an accent strip. -->
+    <Setter Property="Padding" Value="16,14"/>
+    <Setter Property="BorderThickness" Value="0"/>
+  </Style>
+
+  <!-- =================================================================== -->
+  <!-- CheckBox / RadioButton (general use, not the nav ones above)         -->
+  <!-- =================================================================== -->
+
+  <Style Selector="CheckBox">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="FontWeight" Value="Normal"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+  </Style>
+  <Style Selector="RadioButton">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="FontWeight" Value="Normal"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+  </Style>
+
+  <!-- =================================================================== -->
+  <!-- Form validation                                                       -->
+  <!--                                                                       -->
+  <!-- Pattern: required fields get a red asterisk on their label; on Save   -->
+  <!-- with errors, the offending inputs get a red border + an inline error  -->
+  <!-- TextBlock below them, and a summary banner appears at the top of the  -->
+  <!-- form. No live errors while the user is typing — only after an attempt -->
+  <!-- to save — so the form doesn't nag during normal entry.                -->
+  <!-- =================================================================== -->
+
+  <!-- Asterisk Run used inside required labels: <Run Classes="req-star" Text="*"/> -->
+  <Style Selector="Run.req-star">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.Danger}"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+  </Style>
+
+  <!-- Error input border: add class "error" to a TextBox / ComboBox -->
+  <Style Selector="TextBox.error /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.Danger}"/>
+    <Setter Property="BorderThickness" Value="2"/>
+  </Style>
+  <Style Selector="ComboBox.error">
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.Danger}"/>
+    <Setter Property="BorderThickness" Value="2"/>
+  </Style>
+
+  <!-- Inline error message below an input. -->
+  <Style Selector="TextBlock.field-error">
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="12"/>
+    <Setter Property="LineHeight" Value="16"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.Danger}"/>
+    <Setter Property="TextWrapping" Value="Wrap"/>
+    <Setter Property="Margin" Value="0,2,0,0"/>
+  </Style>
+
+  <!-- Summary banner at the top of a form when Save is attempted with
+       errors. The earlier hard-coded translucent reds
+       (#1FB91C1C / #4DB91C1C) were tuned for the cream surface and
+       fell flat on dark-mode BgSurface; theme-aware DangerTint +
+       Danger brushes work in both modes. Interior TextBlocks should
+       use DangerTintFg for their Foreground so the text contrasts
+       against the tinted background in either theme. -->
+  <Style Selector="Border.validation-summary">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.DangerTint}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.Danger}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="8"/>
+    <Setter Property="Padding" Value="16,12"/>
+  </Style>
+
+  <!-- "Show advanced" / "Hide advanced" reveal button. A plain Button —
+       no element-name binding, no custom template — so it measures
+       reliably inside nested ScrollViewers. The visual weight is a link
+       (no filled background, accent-coloured text) via explicit setters.
+       MinHeight is pinned: without it the FluentTheme default Button
+       template can measure its ContentPresenter to zero on certain
+       layout passes, leaving the parent ScrollViewer's content Extent
+       short of the toggle's actual arranged position and making the
+       Advanced section unreachable by scrolling. -->
+  <Style Selector="Button.advanced-toggle-btn">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="6"/>
+    <Setter Property="Padding" Value="4,6"/>
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="HorizontalContentAlignment" Value="Left"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.Accent}"/>
+    <Setter Property="MinHeight" Value="34"/>
+  </Style>
+  <Style Selector="Button.advanced-toggle-btn /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+    <Setter Property="CornerRadius" Value="6"/>
+  </Style>
+  <Style Selector="Button.advanced-toggle-btn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.AccentTint}"/>
+  </Style>
+
+  <!-- Easy/Advanced segmented toggle. Both halves are Buttons of this
+       class — same control type means same render box, same height,
+       same content alignment. The "active" sub-class fills with accent
+       and switches the foreground to white; "switch" stays
+       transparent. left/right sub-classes drive the asymmetric corner
+       radii so the two segments meet flush in the middle. -->
+  <Style Selector="Button.toggle-segment">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.BorderEmphasized}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="0"/>
+    <Setter Property="MinWidth" Value="92"/>
+    <Setter Property="Padding" Value="16,0"/>
+    <Setter Property="VerticalAlignment" Value="Stretch"/>
+    <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontWeight" Value="Normal"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgSecondary}"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Name="RootBorder"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{TemplateBinding CornerRadius}">
+          <ContentPresenter Padding="{TemplateBinding Padding}"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"/>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.toggle-segment.toggle-segment-left">
+    <Setter Property="CornerRadius" Value="6,0,0,6"/>
+  </Style>
+  <Style Selector="Button.toggle-segment.toggle-segment-right">
+    <Setter Property="CornerRadius" Value="0,6,6,0"/>
+    <!-- Avoid a doubled center seam where the two segments meet. -->
+    <Setter Property="BorderThickness" Value="0,1,1,1"/>
+  </Style>
+  <Style Selector="Button.toggle-segment.toggle-segment-active">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.Accent}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.Accent}"/>
+    <Setter Property="Foreground" Value="White"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+  </Style>
+  <!-- Inactive-segment hover: just a calm neutral tint. No accent
+       border flip, no foreground colour change. The single property
+       shift signals "this is interactive" without flashing accent
+       colour. -->
+  <Style Selector="Button.toggle-segment:pointerover /template/ Border#RootBorder">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.NeutralHover}"/>
+  </Style>
+  <!-- Active segment: AccentHover (the proper darker tone, not the
+       old lighter one). Single property change. -->
+  <Style Selector="Button.toggle-segment.toggle-segment-active:pointerover /template/ Border#RootBorder">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.AccentHover}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.AccentHover}"/>
+  </Style>
+
+  <!-- Easy/Advanced segmented toggle — the un-selected segment. The
+       selected segment is a Border (filled accent), this is the
+       clickable "switch to me" half. Designed to sit flush with the
+       sibling Border and share its 34px height so the digit baselines
+       line up. CornerRadius is overridden per-instance (left- vs
+       right-segment) by the consuming view. Hover gives a subtle accent
+       tint; resting state is plain transparent with a 1px border so
+       there's a visible boundary between segments. -->
+  <Style Selector="Button.advanced-toggle-pill">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.BorderEmphasized}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="6,0,0,6"/>
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontWeight" Value="Normal"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgSecondary}"/>
+    <Setter Property="Padding" Value="16,0"/>
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Name="RootBorder"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{TemplateBinding CornerRadius}">
+          <ContentPresenter Name="RootContentPresenter"
+                            Background="Transparent"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            Padding="{TemplateBinding Padding}"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"/>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <!-- Same Transparent-pin pattern as primary/ghost above. -->
+  <Style Selector="Button.advanced-toggle-pill /template/ ContentPresenter#RootContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+  <Style Selector="Button.advanced-toggle-pill:pointerover /template/ ContentPresenter#RootContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+  <Style Selector="Button.advanced-toggle-pill:pressed /template/ ContentPresenter#RootContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+  <Style Selector="Button.advanced-toggle-pill /template/ Border#RootBorder">
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.18" Easing="QuadraticEaseOut"/>
+      </Transitions>
+    </Setter>
+  </Style>
+  <!-- Single-property hover (calm neutral tint). Same convention as
+       toggle-segment above. -->
+  <Style Selector="Button.advanced-toggle-pill:pointerover /template/ Border#RootBorder">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.NeutralHover}"/>
+  </Style>
+
+  <!-- Destination pill — clickable button on the BackupCard's
+       destinations column. Painted as a rounded AccentTint chip so it
+       reads as decorative (matches the source chip aesthetic), but
+       behaviourally a Button so clicking opens the matching Edit
+       Destination dialog. Hover deepens the tint slightly to signal
+       interactivity. -->
+  <Style Selector="Button.dest-pill">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.AccentTint}"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="14"/>
+    <Setter Property="Padding" Value="10,4"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="HorizontalContentAlignment" Value="Left"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Name="RootBorder"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{TemplateBinding CornerRadius}">
+          <ContentPresenter Padding="{TemplateBinding Padding}"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            HorizontalContentAlignment="Left"
+                            VerticalContentAlignment="Center"/>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.dest-pill /template/ Border#RootBorder">
+    <!-- Single-property hover (180ms QuadraticEaseOut): only the
+         background deepens. Earlier the border ALSO transitioned to
+         the accent colour on hover, which combined with the bg shift
+         to feel like a flash on a pill that's already
+         tinted at rest. -->
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.18" Easing="QuadraticEaseOut"/>
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.dest-pill:pointerover /template/ Border#RootBorder">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.AccentTintHover}"/>
+  </Style>
+  <!-- Disabled state: pills with empty Id (a destination removed from
+       config but still referenced by a backup) get their Cursor cleared
+       and tint dimmed so they read as "broken reference" rather than
+       "you can click me". -->
+  <Style Selector="Button.dest-pill:disabled /template/ Border#RootBorder">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.BgSurface}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.BorderSubtle}"/>
+  </Style>
+  <Style Selector="Button.dest-pill:disabled">
+    <Setter Property="Cursor" Value="Arrow"/>
+    <Setter Property="Opacity" Value="0.6"/>
+  </Style>
+
+  <!-- Color taxonomy on the BackupCard action strip:
+       • Run/Stop  → primary blue / red filled (operative actions).
+       • Edit       → ghost neutral (config change).
+       • Restore    → SAGE GREEN OUTLINED (recovery; positive inverse).
+       • Test       → INDIGO OUTLINED (diagnostic; verification).
+       • Delete     → RED OUTLINED row-action-danger (destructive).
+       Outlined-with-tinted-fill makes Restore + Test sit visually with
+       Delete (same shape, different colour). Earlier Restore had the
+       tint but no visible border, looking inconsistent next to
+       Delete's red outline. Now all three outlined actions share the
+       row-action-* visual grammar; only the colour family changes. -->
+  <!-- Mantine v7 "light" variant — see Button.row-action-danger. -->
+  <Style Selector="Button.restore-action">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.SuccessLightFg}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.SuccessLightBorder}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource DM.CornerRadiusButton}"/>
+    <Setter Property="Padding" Value="20,11"/>
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.restore-action /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.SuccessLightBg}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.SuccessLightBorder}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource DM.CornerRadiusButton}"/>
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.14" Easing="QuadraticEaseOut"/>
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.restore-action:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.SuccessLightBgHover}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource DM.Brush.SuccessLightFg}"/>
+  </Style>
+  <Style Selector="Button.restore-action:disabled">
+    <Setter Property="Opacity" Value="0.45"/>
+  </Style>
+
+  <!-- Caution-tinted row action — for "Prune to latest" on a target
+       chip. Prune deletes old revisions to reclaim space; that's not
+       destructive in the same league as Erase or Remove (the latest
+       revision survives), but it's also not a casual action. The
+       amber/orange tint sits between row-action (neutral grey) and
+       row-action-danger (red) — the eye reads it as "thoughtful
+       action required" without alarm. -->
+  <!-- Mantine v7 "light" variant — see Button.row-action-danger. -->
+  <Style Selector="Button.row-action-warn">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.WarnLightFg}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.WarnLightBorder}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="6"/>
+    <Setter Property="Padding" Value="12,6"/>
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Cursor" Value="Hand"/>
+  </Style>
+  <Style Selector="Button.row-action-warn /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.WarnLightBg}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DM.Brush.WarnLightBorder}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="6"/>
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.14" Easing="QuadraticEaseOut"/>
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.row-action-warn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DM.Brush.WarnLightBgHover}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource DM.Brush.WarnLightFg}"/>
+  </Style>
+  <Style Selector="Button.row-action-warn:disabled">
+    <Setter Property="Opacity" Value="0.45"/>
+  </Style>
+
+  <!-- Inline text link — used for "Duplicacy" in the footer
+       attribution. Looks like normal copy at rest (subtle accent
+       foreground, no chrome), underlines on hover. Padding kept
+       tight so it slots inline next to a "Powered by " TextBlock
+       without breaking the baseline. -->
+  <Style Selector="Button.link-text">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.Accent}"/>
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="Transparent">
+          <ContentPresenter Padding="{TemplateBinding Padding}"
+                            Content="{TemplateBinding Content}"
+                            HorizontalContentAlignment="Left"
+                            VerticalContentAlignment="Center"/>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.link-text:pointerover TextBlock">
+    <Setter Property="TextDecorations" Value="Underline"/>
+  </Style>
+
+  <!-- GitHub link in the sidebar footer. Frameless button that hosts a
+       16×16 PathIcon; hover lifts the foreground from FgDim to
+       FgPrimary so the affordance is discoverable without looking
+       like a primary action. -->
+  <Style Selector="Button.github-link">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="6"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgDim}"/>
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}"
+                CornerRadius="6">
+          <ContentPresenter Padding="{TemplateBinding Padding}"
+                            Content="{TemplateBinding Content}"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"/>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.github-link:pointerover">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgPrimary}"/>
+  </Style>
+
+  <!-- Inline text link — chrome-less Button rendered as a hyperlink
+       (FgSecondary at rest, AccentDeep underlined on hover). Used in
+       prose contexts where the visible word IS the link
+       (e.g. "Powered by Duplicacy" in the sidebar footer). -->
+  <Style Selector="Button.text-link">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+    <!-- MinHeight + MinWidth both pinned to 0 so the button measures
+         purely to its content's natural size — FluentTheme's default
+         Button MinWidth (~80px) was leaving a leading gap because
+         HorizontalContentAlignment defaulted to Center, pushing the
+         "Duplicacy" text rightward inside the over-wide button box.
+         User-visible symptom: extra space between "Powered by" and
+         "Duplicacy" that didn't match the StackPanel Spacing="4". -->
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="HorizontalContentAlignment" Value="Left"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.FgSecondary}"/>
+    <!-- Body font (not the FluentTheme default Display) so the link
+         text shares the exact same metrics as the surrounding "Powered
+         by" TextBlock and they sit on the same baseline. -->
+    <Setter Property="FontFamily" Value="{DynamicResource DM.Font.Body}"/>
+    <Setter Property="FontSize" Value="12"/>
+    <Setter Property="FontWeight" Value="Normal"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}">
+          <ContentPresenter Padding="{TemplateBinding Padding}"
+                            Content="{TemplateBinding Content}"
+                            HorizontalContentAlignment="Left"
+                            VerticalContentAlignment="Center"/>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <!-- Inner TextBlock: explicit LineHeight=18 (matches the
+       surrounding `TextBlock.dim` parent) for two reasons:
+         1. Vertical alignment — both TextBlocks measure to the same
+            18px tall box, so baselines line up cleanly.
+         2. Underline rendering — the dotted underline below uses a
+            StrokeOffset of ~2px to clear the descenders. The default
+            16px line-box would clip that offset at the Border edge;
+            18px leaves the 2-3px below the baseline that the
+            underline needs to render visibly.
+       Earlier diagnostic confirmed the property WAS being set
+       (PoweredByLinkTests dumps it correctly) — the underline simply
+       got clipped by the too-tight bounding rect. -->
+  <Style Selector="Button.text-link TextBlock">
+    <Setter Property="LineHeight" Value="18"/>
+    <Setter Property="TextDecorations">
+      <TextDecorationCollection>
+        <TextDecoration Location="Underline"
+                        StrokeDashArray="1,2"
+                        StrokeThickness="1"
+                        StrokeThicknessUnit="Pixel"
+                        StrokeOffset="2"
+                        StrokeOffsetUnit="Pixel"/>
+      </TextDecorationCollection>
+    </Setter>
+  </Style>
+  <Style Selector="Button.text-link:pointerover">
+    <Setter Property="Foreground" Value="{DynamicResource DM.Brush.AccentDeep}"/>
+  </Style>
+  <Style Selector="Button.text-link:pointerover TextBlock">
+    <Setter Property="TextDecorations" Value="Underline"/>
+  </Style>
+
+</Styles>

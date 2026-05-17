@@ -1,0 +1,65 @@
+name: Sync website to duplimate.github.io
+
+# Mirrors the contents of docs/ into the duplimate/duplimate.github.io repo
+# every time main changes. The website repo is a "user/org Pages" repo, so
+# GitHub Pages serves its root at https://duplimate.github.io/ — that's why
+# we copy the docs/ folder INTO that repo's root rather than keeping the
+# /docs/ path segment.
+#
+# ──────────────────────────────────────────────────────────────────────────
+# One-time setup (required for this workflow to actually push):
+#
+# 1. Create a fine-grained Personal Access Token at:
+#       https://github.com/settings/personal-access-tokens
+#    Scope it to ONLY the duplimate/duplimate.github.io repository.
+#    Permissions: Repository → Contents = Read and write.
+#    Expiration: as long as you're comfortable (1 year is reasonable).
+#
+# 2. In the duplimate/duplimate repo on GitHub:
+#       Settings → Secrets and variables → Actions → New repository secret
+#    Name:  WEBSITE_DEPLOY_TOKEN
+#    Value: <paste the PAT from step 1>
+#
+# Until the secret exists, this workflow will run on push and fail at the
+# deploy step with "Error: Input required and not supplied: personal_token".
+# That's harmless — the main repo CI is unaffected — but the website won't
+# auto-update. You can also dispatch this workflow manually from the Actions
+# tab once the secret is in place.
+# ──────────────────────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - '.github/workflows/sync-website.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-website
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source repo
+        uses: actions/checkout@v4
+
+      - name: Mirror docs/ to duplimate.github.io
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          personal_token: ${{ secrets.WEBSITE_DEPLOY_TOKEN }}
+          external_repository: duplimate/duplimate.github.io
+          publish_branch: main
+          publish_dir: ./docs
+          # Force-push so the website repo's history mirrors docs/ exactly
+          # rather than accumulating noisy merge commits. The website repo
+          # is treated as a build artifact, not a working tree.
+          force_orphan: true
+          user_name: 'duplimate-bot'
+          user_email: 'bot@users.noreply.github.com'
+          commit_message: 'Sync from duplimate/duplimate@${{ github.sha }}'

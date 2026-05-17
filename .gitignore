@@ -1,0 +1,57 @@
+## .NET
+bin/
+obj/
+out/
+*.user
+*.suo
+.vs/
+.vscode/
+
+## Rider
+.idea/
+
+## Avalonia generated
+**/AvaloniaResource/
+**/*.g.cs
+
+## Published output
+publish/
+dist/
+*.exe.config
+concept-*.png
+duplimate-screenshot.png
+
+## Secrets / local
+**/appsettings.Local.json
+**/secrets.*
+*.pfx
+
+## E2E scenario test secrets — dropbox tokens, OAuth bits.
+## Single dotenv-style file beside the test .csproj.
+tests/Duplimate.Tests/secrets.env
+
+## E2E scenario artifacts (regenerated on every run).
+tests/Duplimate.Tests/artifacts/scenarios/
+
+## OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+## Editor / Claude Code state — keep shared settings, ignore local overrides + runtime locks
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+## Duplicacy binary (embedded as resource at build time, not committed)
+src/Duplimate/Assets/duplicacy.exe
+
+## Duplimate.Stub published output (embedded as resource at build time)
+src/Duplimate/Assets/Duplimate-stub.exe
+
+## Test backup folders users might accidentally create in repo
+/local_c/
+/local_d/
+/local_dropbox/
+Context.txt
+Duplimate.config
+Duplimate.exe - Shortcut.lnk

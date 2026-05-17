@@ -1,0 +1,469 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Duplimate.ViewModels"
+             x:Class="Duplimate.Views.BackupCard"
+             x:DataType="vm:BackupCardViewModel">
+
+  <!--
+    BackupCard — "editorial chronicle" composition.
+
+    The earlier 3-band layout left the footer's verify cluster
+    floating after Delete as a tail-end of the buttons row, with
+    two danger-toned elements (red Delete + red verify-fail text)
+    competing for attention. This redesign rejects the "everything
+    on one row with vertical separators" idiom and adopts the same
+    quiet rhythm DestinationsView uses: whitespace + a single
+    hairline rule defines zones, never a vertical sliver.
+
+    Composition (top → bottom):
+
+      ┌─ HEADER BAND  (CardBandTint) ─────────────────────────────┐
+      │  Name              │  LAST badge + label  │  NEXT badge   │
+      │                    │  (logs pill, etc.)   │  + label      │
+      └─ hairline ────────────────────────────────────────────────┤
+      │ BODY  (BgSurface)                                         │
+      │  Sources × Destinations                                   │
+      │  (running progress strip — only while running)            │
+      └─ hairline ────────────────────────────────────────────────┤
+      │ VERIFY LANE  (BgSurface)                                  │
+      │  badge · "Verified 8d ago — OK" · …  ·····  [Test restore]│
+      └─ hairline ────────────────────────────────────────────────┤
+      │ ACTION SHELF  (CardBandTint)                              │
+      │  [Run now] [Edit] [Restore files]            ·    [Delete]│
+      └────────────────────────────────────────────────────────────┘
+
+    Why this works:
+    * Verify and Delete no longer share a row, so the two red-toned
+      signals can never collide.
+    * Verify gets its own typographic lane — it reads as a status
+      sentence ("Verified 8d ago — OK") with the diagnostic action
+      pinned to the lane's right edge. No "VERIFY" caps label —
+      the prose names itself.
+    * Delete is isolated on the far right of the action shelf with a
+      flex spacer between it and the constructive actions. Distance
+      replaces vertical separators.
+    * No vertical 1-pixel slivers anywhere; rhythm is whitespace +
+      hairline, the same idiom as DestinationsView.
+    * Header LAST/NEXT use grid columns instead of leading separators,
+      so column 2 starts where column 2 should — predictably aligned
+      across cards regardless of name length.
+  -->
+
+  <Border Margin="0,0,0,16"
+          Background="Transparent"
+          BorderBrush="{DynamicResource DM.Brush.BorderSubtle}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource DM.CornerRadius}"
+          ClipToBounds="True">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto">
+
+      <!-- ============ HEADER BAND ============
+           Identity + temporal cadence. Three columns:
+             • Name (SharedSizeGroup keeps cards' name columns aligned)
+             • LAST cluster (badge + label + fail/warn pill or progress)
+             • NEXT cluster (badge + label)
+           No vertical separators. Spacing between columns is a 36px
+           gutter — large enough that each cluster reads as its own
+           island, small enough the header doesn't feel sparse.
+           When the window narrows below the natural width, the LAST
+           and NEXT clusters drop onto a second row via the WrapPanel
+           that hosts them. -->
+      <Border Grid.Row="0"
+              Background="{DynamicResource DM.Brush.CardBandTint}"
+              BorderBrush="{DynamicResource DM.Brush.BorderSubtle}"
+              BorderThickness="0,0,0,1"
+              CornerRadius="10,10,0,0"
+              Padding="24,18,24,16">
+        <Grid VerticalAlignment="Center">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" SharedSizeGroup="BackupCardName"/>
+            <ColumnDefinition Width="*"/>
+          </Grid.ColumnDefinitions>
+
+          <TextBlock Grid.Column="0" Text="{Binding Name}" Classes="backup-card-name"
+                     MaxWidth="380"
+                     TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                     ToolTip.Tip="{Binding Name}"/>
+
+          <!-- Temporal clusters live in a WrapPanel so they drop to a
+               second row when the header is too narrow. Each cluster
+               carries its own left margin (36px) which provides the
+               between-cluster gutter on the wide layout, and a small
+               top margin (6px) which only matters in the wrapped case
+               (it gives the second row breathing room from the title).
+               No leading vertical separators — pure whitespace. -->
+          <WrapPanel Grid.Column="1" Orientation="Horizontal"
+                     VerticalAlignment="Center"
+                     HorizontalAlignment="Right">
+
+            <!-- LAST cluster -->
+            <StackPanel Orientation="Vertical" Spacing="5"
+                        Margin="36,2,0,2"
+                        VerticalAlignment="Center">
+              <TextBlock Text="LAST" Classes="label-caps" Margin="0"/>
+              <StackPanel Orientation="Horizontal" Spacing="10"
+                          VerticalAlignment="Center">
+                <Border Classes="status-badge"
+                        ToolTip.Tip="{Binding StatusLabel}"
+                        Classes.ok="{Binding StatusClass, Converter={x:Static vm:Eq.To}, ConverterParameter=ok}"
+                        Classes.warn="{Binding StatusClass, Converter={x:Static vm:Eq.To}, ConverterParameter=warn}"
+                        Classes.fail="{Binding StatusClass, Converter={x:Static vm:Eq.To}, ConverterParameter=fail}"
+                        Classes.skipped="{Binding StatusClass, Converter={x:Static vm:Eq.To}, ConverterParameter=skipped}"
+                        Classes.running="{Binding StatusClass, Converter={x:Static vm:Eq.To}, ConverterParameter=running}"
+                        Classes.idle="{Binding StatusClass, Converter={x:Static vm:Eq.To}, ConverterParameter=idle}"/>
+                <TextBlock Text="{Binding LastRunLabel}" Classes="meta-value"
+                           VerticalAlignment="Center"
+                           Classes.fail="{Binding StatusClass, Converter={x:Static vm:Eq.To}, ConverterParameter=fail}"
+                           Classes.warn="{Binding StatusClass, Converter={x:Static vm:Eq.To}, ConverterParameter=warn}"
+                           Classes.skipped="{Binding StatusClass, Converter={x:Static vm:Eq.To}, ConverterParameter=skipped}"/>
+                <Button Classes="row-action-warn"
+                        IsVisible="{Binding StatusClass, Converter={x:Static vm:Eq.To}, ConverterParameter=warn}"
+                        Command="{Binding ViewLogsCommand}"
+                        ToolTip.Tip="Open the run log for this backup in Activity &amp; logs">
+                  <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <PathIcon Data="{StaticResource Icon.Activity}" Width="12" Height="12"/>
+                    <TextBlock Text="View logs" FontSize="12"/>
+                  </StackPanel>
+                </Button>
+                <Button Classes="row-action-danger"
+                        IsVisible="{Binding StatusClass, Converter={x:Static vm:Eq.To}, ConverterParameter=fail}"
+                        Command="{Binding ViewLogsCommand}"
+                        ToolTip.Tip="Open the run log for this backup in Activity &amp; logs">
+                  <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <PathIcon Data="{StaticResource Icon.Activity}" Width="12" Height="12"/>
+                    <TextBlock Text="View logs" FontSize="12"/>
+                  </StackPanel>
+                </Button>
+                <StackPanel Orientation="Horizontal" Spacing="8"
+                            VerticalAlignment="Center"
+                            IsVisible="{Binding IsActuallyRunning}">
+                  <ProgressBar IsIndeterminate="True"
+                               Width="40" Height="4"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource DM.Brush.Accent}"
+                               Background="{DynamicResource DM.Brush.AccentTint}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8"
+                            VerticalAlignment="Center"
+                            IsVisible="{Binding IsQueued}">
+                  <ProgressBar Minimum="0" Maximum="100" Value="0"
+                               Width="40" Height="4"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource DM.Brush.AccentDeep}"
+                               Background="{DynamicResource DM.Brush.AccentTint}"
+                               Opacity="0.5"/>
+                  <TextBlock Text="Queued…" FontSize="12"
+                             Foreground="{DynamicResource DM.Brush.FgSecondary}"
+                             VerticalAlignment="Center"/>
+                </StackPanel>
+              </StackPanel>
+            </StackPanel>
+
+            <!-- NEXT cluster -->
+            <StackPanel Orientation="Vertical" Spacing="5"
+                        Margin="36,2,0,2"
+                        VerticalAlignment="Center">
+              <TextBlock Text="NEXT" Classes="label-caps" Margin="0"/>
+              <StackPanel Orientation="Horizontal" Spacing="10"
+                          VerticalAlignment="Center">
+                <!-- NEXT keeps its clock glyph (no surrounding disc) — a
+                     dot wouldn't carry the "scheduled vs manual" semantics
+                     that LAST's plain pass/fail dot does. The accent-blue
+                     stroked clock reads as "this will fire" at a glance. -->
+                <PathIcon Classes="status-icon"
+                          Classes.scheduled="{Binding NextRunClass, Converter={x:Static vm:Eq.To}, ConverterParameter=scheduled}"
+                          Classes.manual="{Binding NextRunClass, Converter={x:Static vm:Eq.To}, ConverterParameter=manual}"/>
+                <TextBlock Text="{Binding NextRunLabel}" Classes="meta-value"
+                           VerticalAlignment="Center"
+                           Classes.manual="{Binding NextRunClass, Converter={x:Static vm:Eq.To}, ConverterParameter=manual}"/>
+              </StackPanel>
+            </StackPanel>
+
+          </WrapPanel>
+        </Grid>
+      </Border>
+
+      <!-- ============ BODY ============
+           Cream BgSurface — the calm baseline. Sources × Destinations
+           plus the optional running-progress strip. -->
+      <Border Grid.Row="1"
+              Background="{DynamicResource DM.Brush.BgSurface}"
+              Padding="24,18,24,18">
+        <StackPanel Spacing="14">
+
+          <Grid ColumnDefinitions="*,18,*">
+            <StackPanel Grid.Column="0" Spacing="6">
+              <TextBlock Classes="label-caps" Text="{Binding SourcesCountLabel}" Margin="0"
+                         ToolTip.Tip="{Binding SourcesTooltip}"/>
+              <ScrollViewer MaxHeight="160" VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Sources}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="vm:BackupCardViewModel+SourceLine">
+                      <Grid Margin="0,0,0,4">
+                        <Border Background="{DynamicResource DM.Brush.AccentTint}"
+                                CornerRadius="6"
+                                Opacity="0.5">
+                          <Border.IsVisible>
+                            <MultiBinding Converter="{x:Static vm:BoolAnd.To}">
+                              <Binding Path="$parent[ItemsControl].((vm:BackupCardViewModel)DataContext).ShowProgress"/>
+                              <Binding Path="$parent[ItemsControl].((vm:BackupCardViewModel)DataContext).IsRunning"/>
+                            </MultiBinding>
+                          </Border.IsVisible>
+                        </Border>
+                        <ProgressBar Minimum="0" Maximum="100"
+                                     Value="{Binding PercentComplete}"
+                                     Height="22"
+                                     Background="Transparent"
+                                     Foreground="{DynamicResource DM.Brush.Accent}"
+                                     IsVisible="{Binding $parent[ItemsControl].((vm:BackupCardViewModel)DataContext).IsRunning}"
+                                     Opacity="0.35"/>
+                        <Grid ColumnDefinitions="*,Auto,Auto" Margin="10,2">
+                          <TextBlock Grid.Column="0" Classes="mono" FontSize="13"
+                                     Text="{Binding Path}"
+                                     TextTrimming="CharacterEllipsis"
+                                     ToolTip.Tip="{Binding Path}"
+                                     VerticalAlignment="Center"/>
+                          <TextBlock Grid.Column="1" FontSize="12"
+                                     Margin="8,0,0,0"
+                                     VerticalAlignment="Center"
+                                     Foreground="{DynamicResource DM.Brush.FgDim}"
+                                     IsVisible="{Binding HasSize}"
+                                     Text="{Binding SizeLabel, StringFormat='({0})'}"/>
+                          <TextBlock Grid.Column="2" FontSize="12"
+                                     Margin="8,0,0,0"
+                                     IsVisible="{Binding $parent[ItemsControl].((vm:BackupCardViewModel)DataContext).IsRunning}"
+                                     VerticalAlignment="Center"
+                                     Foreground="{DynamicResource DM.Brush.FgSecondary}"
+                                     Text="{Binding PercentComplete, StringFormat='{}{0:0}%'}"/>
+                        </Grid>
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Spacing="6">
+              <TextBlock Classes="label-caps"
+                         Text="{Binding DestinationsCountLabel}"
+                         Margin="0"
+                         ToolTip.Tip="{Binding DestinationsTooltip}"/>
+              <ScrollViewer MaxHeight="160" VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Destinations}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="vm:BackupCardViewModel+DestinationPill">
+                      <Grid Margin="0,0,6,4" HorizontalAlignment="Left">
+                        <Border CornerRadius="999"
+                                Tag="{DynamicResource DM.Brush.Accent}"
+                                IsHitTestVisible="False">
+                          <Border.Background>
+                            <MultiBinding Converter="{x:Static vm:PercentToProgressBrush.To}">
+                              <Binding Path="PercentComplete"/>
+                              <Binding Path="Tag" RelativeSource="{RelativeSource Mode=Self}"/>
+                            </MultiBinding>
+                          </Border.Background>
+                        </Border>
+                        <Button Classes="dest-pill"
+                                HorizontalAlignment="Left"
+                                ToolTip.Tip="{Binding Tooltip}"
+                                Command="{Binding $parent[ItemsControl].((vm:BackupCardViewModel)DataContext).EditDestinationCommand}"
+                                CommandParameter="{Binding Id}">
+                          <Button.IsEnabled>
+                            <MultiBinding Converter="{x:Static vm:BoolAnd.To}">
+                              <Binding Path="IsClickable"/>
+                              <Binding Path="$parent[ItemsControl].((vm:BackupCardViewModel)DataContext).CanEditWhileIdle"/>
+                            </MultiBinding>
+                          </Button.IsEnabled>
+                          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <PathIcon Data="{Binding Kind, Converter={x:Static vm:DestinationKindIcon.To}}"
+                                      Width="13" Height="13"
+                                      Foreground="{DynamicResource DM.Brush.Accent}"
+                                      VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Name}"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource DM.Brush.AccentDeep}"
+                                       VerticalAlignment="Center"/>
+                          </StackPanel>
+                        </Button>
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </StackPanel>
+          </Grid>
+
+          <!-- Overall progress strip — only while running. -->
+          <Grid ColumnDefinitions="10,14,*,Auto,Auto"
+                IsVisible="{Binding IsRunning}">
+            <Border Grid.Column="0" Classes="status-badge running"/>
+            <ProgressBar Grid.Column="2" Minimum="0" Maximum="100"
+                         Value="{Binding OverallPercent}"
+                         Height="6"
+                         Background="{DynamicResource DM.Brush.AccentTint}"
+                         Foreground="{DynamicResource DM.Brush.Accent}"
+                         VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="3" FontSize="12"
+                       Margin="12,0,0,0"
+                       Foreground="{DynamicResource DM.Brush.FgSecondary}"
+                       VerticalAlignment="Center"
+                       Text="{Binding OverallPercent, StringFormat='{}{0:0}%'}"/>
+            <Border Grid.Column="4"
+                    Margin="10,0,0,0"
+                    Padding="8,2"
+                    CornerRadius="999"
+                    Background="{DynamicResource DM.Brush.AccentTint}"
+                    VerticalAlignment="Center"
+                    IsVisible="{Binding CurrentPhaseLabel, Converter={x:Static vm:NotEmpty.To}}">
+              <TextBlock Text="{Binding CurrentPhaseLabel}"
+                         FontSize="11" FontWeight="SemiBold"
+                         LetterSpacing="0.4"
+                         Foreground="{DynamicResource DM.Brush.AccentDeep}"/>
+            </Border>
+          </Grid>
+
+        </StackPanel>
+      </Border>
+
+      <!-- ============ VERIFY LANE ============
+           A single calm sentence: badge + verify status text on the
+           left, "Test restore" pinned to the right edge by a Grid
+           "*" spacer column. Sits on the BgSurface (not the tinted
+           band) so it reads as a continuation of the body's status
+           reporting rather than an action zone.
+
+           IsVisible gated on ShowActions: the Restore-pick view
+           hides the verify lane along with the action shelf below
+           since neither belongs there. -->
+      <!-- Verify lane — user-asked layout:
+             [Test restore]  (disc)  Succeeded/FAILED · 9d ago
+           Test restore sits at the same left-edge as Run-now in the
+           action shelf below (matching Padding="24"), so the two
+           rows have a shared vertical rule on the left. -->
+      <Border Grid.Row="2"
+              IsVisible="{Binding ShowActions}"
+              Background="{DynamicResource DM.Brush.BgSurface}"
+              BorderBrush="{DynamicResource DM.Brush.BorderSubtle}"
+              BorderThickness="0,1,0,0"
+              Padding="24,12,24,12">
+        <StackPanel Orientation="Horizontal" Spacing="14"
+                    VerticalAlignment="Center">
+          <Button Classes="row-action"
+                  IsEnabled="{Binding TestRestoreEnabled}"
+                  ToolTip.Tip="{Binding TestRestoreTooltip}"
+                  ToolTip.ShowOnDisabled="True"
+                  Command="{Binding $parent[ItemsControl].((vm:BackupsViewModel)DataContext).TestRestoreCommand}"
+                  CommandParameter="{Binding}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <PathIcon Data="{StaticResource Icon.Check}" Width="13" Height="13"/>
+              <TextBlock VerticalAlignment="Center" Text="{Binding IsVerifying, Converter={x:Static vm:VerifyButtonLabel.To}}"/>
+            </StackPanel>
+          </Button>
+          <Border Classes="status-badge"
+                  Classes.ok="{Binding VerifyClass, Converter={x:Static vm:Eq.To}, ConverterParameter=ok}"
+                  Classes.fail="{Binding VerifyClass, Converter={x:Static vm:Eq.To}, ConverterParameter=fail}"
+                  Classes.stale="{Binding VerifyClass, Converter={x:Static vm:Eq.To}, ConverterParameter=stale}"
+                  Classes.never="{Binding VerifyClass, Converter={x:Static vm:Eq.To}, ConverterParameter=never}"/>
+          <TextBlock Text="{Binding VerifyLabel}" Classes="meta-value"
+                     VerticalAlignment="Center"
+                     TextTrimming="CharacterEllipsis"
+                     ToolTip.Tip="{Binding VerifyLabel}"
+                     Classes.fail="{Binding VerifyClass, Converter={x:Static vm:Eq.To}, ConverterParameter=fail}"
+                     Classes.stale="{Binding VerifyClass, Converter={x:Static vm:Eq.To}, ConverterParameter=stale}"
+                     Classes.never="{Binding VerifyClass, Converter={x:Static vm:Eq.To}, ConverterParameter=never}"/>
+        </StackPanel>
+      </Border>
+
+      <!-- ============ ACTION SHELF ============
+           Tinted CardBandTint to mark "this is where the verbs live".
+           Two clusters separated by a flex spacer:
+             • LEFT: Run / Stop · Edit · Restore files (constructive)
+             • RIGHT: Delete  (destructive, isolated)
+           Distance — not a vertical separator — is what tells the eye
+           that Delete is categorically different from the trio on the
+           left. The danger-tinted Delete button now sits alone in its
+           lane, no longer adjacent to the verify-fail red text. -->
+      <Border Grid.Row="3"
+              IsVisible="{Binding ShowActions}"
+              Background="{DynamicResource DM.Brush.CardBandTint}"
+              BorderBrush="{DynamicResource DM.Brush.BorderSubtle}"
+              BorderThickness="0,1,0,0"
+              CornerRadius="0,0,10,10"
+              Padding="24,14,24,14">
+        <Grid VerticalAlignment="Center">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+
+          <!-- LEFT: constructive trio. Run/Stop is the primary
+               filled blue; Edit + Restore files are outlined
+               siblings. Spacing handled by per-button right margin
+               so the cluster reads as a single unit. -->
+          <StackPanel Grid.Column="0" Orientation="Horizontal"
+                      VerticalAlignment="Center" Spacing="0">
+            <Button Classes="primary"
+                    IsVisible="{Binding !IsRunning}"
+                    IsEnabled="{Binding CanRunNow}"
+                    ToolTip.Tip="{Binding RunNowTooltip}"
+                    ToolTip.ShowOnDisabled="True"
+                    Margin="0,0,10,0"
+                    Command="{Binding $parent[ItemsControl].((vm:BackupsViewModel)DataContext).RunNowCommand}"
+                    CommandParameter="{Binding}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Data="{StaticResource Icon.Play}" Width="12" Height="12" Foreground="White"/>
+                <TextBlock Text="Run now" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Button>
+            <Button Classes="danger"
+                    IsVisible="{Binding IsRunning}"
+                    Margin="0,0,10,0"
+                    Command="{Binding $parent[ItemsControl].((vm:BackupsViewModel)DataContext).CancelRunCommand}"
+                    CommandParameter="{Binding}">
+              <TextBlock Text="Stop" VerticalAlignment="Center"/>
+            </Button>
+            <Button Classes="ghost"
+                    IsEnabled="{Binding !IsRunning}"
+                    ToolTip.Tip="{Binding EditTooltip}"
+                    ToolTip.ShowOnDisabled="True"
+                    Margin="0,0,10,0"
+                    Command="{Binding $parent[ItemsControl].((vm:BackupsViewModel)DataContext).EditCommand}"
+                    CommandParameter="{Binding}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Data="{StaticResource Icon.Edit}" Width="13" Height="13"/>
+                <TextBlock Text="Edit" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Button>
+            <Button Classes="restore-action"
+                    IsEnabled="{Binding !IsRunning}"
+                    ToolTip.Tip="{Binding RestoreFilesTooltip}"
+                    ToolTip.ShowOnDisabled="True"
+                    Command="{Binding $parent[ItemsControl].((vm:BackupsViewModel)DataContext).RestoreFilesCommand}"
+                    CommandParameter="{Binding}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Data="{StaticResource Icon.Restore}" Width="13" Height="13"/>
+                <TextBlock Text="Restore files" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Button>
+          </StackPanel>
+
+          <!-- RIGHT: destructive, alone. -->
+          <Button Grid.Column="2"
+                  Classes="row-action-danger"
+                  IsEnabled="{Binding !IsRunning}"
+                  ToolTip.Tip="{Binding DeleteTooltip}"
+                  ToolTip.ShowOnDisabled="True"
+                  Command="{Binding $parent[ItemsControl].((vm:BackupsViewModel)DataContext).DeleteCommand}"
+                  CommandParameter="{Binding}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <PathIcon Data="{StaticResource Icon.Trash}" Width="13" Height="13"/>
+              <TextBlock Text="Delete"/>
+            </StackPanel>
+          </Button>
+        </Grid>
+      </Border>
+
+    </Grid>
+  </Border>
+</UserControl>

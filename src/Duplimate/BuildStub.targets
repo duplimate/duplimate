@@ -1,0 +1,61 @@
+<Project>
+
+  <!--
+    Publishes Duplimate.Stub before Avalonia bundles embedded
+    resources, so Assets/Duplimate-stub.exe is on disk by the time
+    AvaloniaResource items are collected. The stub is a tiny standalone
+    exe (~13MB trimmed self-contained) that scheduled tasks fall back
+    to when the user's main Duplimate.exe is missing — see
+    CanonicalInstaller / TaskSchedulerService for the full flow.
+
+    Incremental: target's Inputs/Outputs mean a clean rebuild costs one
+    `dotnet publish` (~5s); a second build with no source changes is a
+    no-op.
+
+    Escape hatches:
+      • Set SkipStubBuild=true to build without the stub (main app and
+        scheduled tasks still work; tasks just lose the missing-exe
+        fallback warning).
+      • Drop your own Duplimate-stub.exe into Assets/ manually.
+  -->
+
+  <PropertyGroup>
+    <StubProject>$(MSBuildThisFileDirectory)..\Duplimate.Stub\Duplimate.Stub.csproj</StubProject>
+    <StubPublishDir>$(MSBuildThisFileDirectory)..\Duplimate.Stub\bin\$(Configuration)\net10.0-windows\win-x64\publish\</StubPublishDir>
+    <StubPublishExe>$(StubPublishDir)Duplimate-stub.exe</StubPublishExe>
+    <StubAssetPath>$(MSBuildThisFileDirectory)Assets\Duplimate-stub.exe</StubAssetPath>
+    <SkipStubBuild Condition="'$(SkipStubBuild)' == ''">false</SkipStubBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <_StubSource Include="$(MSBuildThisFileDirectory)..\Duplimate.Stub\Program.cs" />
+    <_StubSource Include="$(MSBuildThisFileDirectory)..\Duplimate.Stub\Duplimate.Stub.csproj" />
+  </ItemGroup>
+
+  <Target Name="PublishStub"
+          BeforeTargets="GenerateAvaloniaResources;PrepareResources;BeforeBuild"
+          Condition="'$(SkipStubBuild)' != 'true'"
+          Inputs="@(_StubSource)"
+          Outputs="$(StubAssetPath)">
+
+    <Message Importance="high"
+             Text="[Duplimate] Publishing stub (~13MB self-contained)..." />
+
+    <!-- ContinueOnError so a failing stub publish doesn't break the
+         entire main-app build — the runtime extractor handles missing-
+         stub gracefully. The Copy below will still error if the publish
+         genuinely failed and the file isn't there; that's the right
+         signal. -->
+    <Exec Command="dotnet publish &quot;$(StubProject)&quot; -c $(Configuration) -r win-x64 --nologo --verbosity quiet"
+          ContinueOnError="WarnAndContinue" />
+
+    <Copy SourceFiles="$(StubPublishExe)"
+          DestinationFiles="$(StubAssetPath)"
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(StubPublishExe)')" />
+
+    <Warning Condition="!Exists('$(StubAssetPath)')"
+             Text="Stub publish didn't produce $(StubAssetPath); main app will build without it. Set -p:SkipStubBuild=true to silence this warning." />
+  </Target>
+
+</Project>

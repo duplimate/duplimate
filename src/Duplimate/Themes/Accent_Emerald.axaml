@@ -1,0 +1,23 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Light">
+      <!-- Hover = ~8% darker, Deep = ~25% darker. Same convention
+           rationale as Ocean — see that file's comment. -->
+      <SolidColorBrush x:Key="DM.Brush.Accent"          Color="#FF059669"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentHover"     Color="#FF04865E"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentDeep"      Color="#FF04714F"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTint"      Color="#1A059669"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTintHover" Color="#26059669"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTintFg"    Color="#FF04714F"/>
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="DM.Brush.Accent"          Color="#FF34D399"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentHover"     Color="#FF6EE7B7"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentDeep"      Color="#FF10B981"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTint"      Color="#3334D399"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTintHover" Color="#5534D399"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTintFg"    Color="#FF6EE7B7"/> <!-- emerald-300 -->
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

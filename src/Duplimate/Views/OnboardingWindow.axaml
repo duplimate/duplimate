@@ -1,0 +1,361 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Duplimate.ViewModels"
+        xmlns:m="using:Duplimate.Models"
+        xmlns:v="using:Duplimate.Views"
+        x:Class="Duplimate.Views.OnboardingWindow"
+        x:DataType="vm:OnboardingViewModel"
+        Title="Set up your first backup — Duplimate"
+        Width="820" Height="700"
+        MinWidth="720" MinHeight="600"
+        Background="{DynamicResource DM.Brush.BgBase}"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="38,30,38,26">
+
+    <!-- Header. Title varies by call-site (first backup vs. subsequent
+         vs. edit). Subtitle calls out the easy/advanced toggle so the
+         user knows the option exists without us shipping a tour. -->
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,18">
+      <StackPanel Grid.Column="0" Spacing="6">
+        <TextBlock Classes="page-title" Text="{Binding HeaderTitle}"/>
+        <TextBlock Classes="page-subtitle"
+                   Text="You can refine anything later and switch easy/advanced mode at any time."/>
+      </StackPanel>
+      <!-- Mode toggle, top-right. Both segments are the same control
+           type (Button.toggle-segment) so the renderer treats them
+           identically — same height, same content alignment, same
+           padding. One has the "active" sub-class to flip the fill /
+           foreground; the other has the "switch" sub-class with a
+           Click that triggers the mode switch. Earlier layout mixed
+           Border + Button which rendered at different heights because
+           Button's outer chrome added a few pixels the Border didn't
+           reserve. -->
+      <!-- Segmented "mode" control. The active segment is
+           IsHitTestVisible=False (no click-on-self loop) but stays
+           focusable for screen readers via AutomationProperties.
+           AutomationProperties.Name on the wrapping StackPanel gives
+           the control a single name; per-segment HelpText describes
+           role + state. -->
+      <StackPanel Grid.Column="1" Orientation="Horizontal"
+                  Height="32"
+                  VerticalAlignment="Center"
+                  AutomationProperties.Name="Editor mode"
+                  AutomationProperties.HelpText="Two-segment toggle: Easy or Advanced.">
+        <!-- Focusable + IsTabStop ensure keyboard / screen-reader users
+             can still reach the active segment to hear its "Currently
+             selected" announcement. IsHitTestVisible=False prevents
+             pointer click-on-self that would do nothing. -->
+        <Button Classes="toggle-segment toggle-segment-active toggle-segment-left"
+                Content="Easy"
+                IsHitTestVisible="False"
+                Focusable="True"
+                IsTabStop="True"
+                AutomationProperties.Name="Easy mode"
+                AutomationProperties.HelpText="Currently selected. Easy mode hides advanced options."/>
+        <Button Classes="toggle-segment toggle-segment-right"
+                Content="Advanced"
+                Click="OnSwitchToAdvanced"
+                AutomationProperties.Name="Advanced mode"
+                AutomationProperties.HelpText="Switch to Advanced mode (shows every option)."/>
+      </StackPanel>
+    </Grid>
+
+    <!-- Step indicator -->
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,*,Auto,*" Margin="0,0,0,18">
+      <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+        <!-- Step 1 dot uses the same IsStep1 binding pattern as Steps 2
+             and 3; previously it was hardcoded blue, which (combined
+             with a broken converter on steps 2/3) gave the impression
+             that "the blue disk doesn't move" when the user clicked
+             Next. -->
+        <Border Width="26" Height="26" CornerRadius="13"
+                Background="{Binding IsStep1, Converter={x:Static vm:BoolToAccent.OrSubtle}}">
+          <Border.Transitions>
+            <Transitions>
+              <BrushTransition Property="Background" Duration="0:0:0.18" Easing="ExponentialEaseOut"/>
+            </Transitions>
+          </Border.Transitions>
+          <TextBlock Text="1" HorizontalAlignment="Center" VerticalAlignment="Center"
+                     FontWeight="SemiBold" FontSize="13"
+                     Foreground="{Binding IsStep1, Converter={x:Static vm:BoolToAccent.WhiteOrDim}}"/>
+        </Border>
+        <TextBlock Text="What to back up" VerticalAlignment="Center" FontWeight="SemiBold"
+                   Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+      </StackPanel>
+      <Border Grid.Column="1" Width="40" Height="1" Margin="14,0"
+              VerticalAlignment="Center"
+              Background="{DynamicResource DM.Brush.BorderSubtle}"/>
+      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10">
+        <Border Width="26" Height="26" CornerRadius="13"
+                Background="{Binding IsStep2, Converter={x:Static vm:BoolToAccent.OrSubtle}}">
+          <Border.Transitions>
+            <Transitions>
+              <BrushTransition Property="Background" Duration="0:0:0.18" Easing="ExponentialEaseOut"/>
+            </Transitions>
+          </Border.Transitions>
+          <TextBlock Text="2" HorizontalAlignment="Center" VerticalAlignment="Center"
+                     FontWeight="SemiBold" FontSize="13"
+                     Foreground="{Binding IsStep2, Converter={x:Static vm:BoolToAccent.WhiteOrDim}}"/>
+        </Border>
+        <TextBlock Text="Pick a destination" VerticalAlignment="Center"
+                   Foreground="{DynamicResource DM.Brush.FgSecondary}"/>
+      </StackPanel>
+      <Border Grid.Column="3" Width="40" Height="1" Margin="14,0"
+              VerticalAlignment="Center"
+              Background="{DynamicResource DM.Brush.BorderSubtle}"/>
+      <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="10">
+        <Border Width="26" Height="26" CornerRadius="13"
+                Background="{Binding IsStep3, Converter={x:Static vm:BoolToAccent.OrSubtle}}">
+          <Border.Transitions>
+            <Transitions>
+              <BrushTransition Property="Background" Duration="0:0:0.18" Easing="ExponentialEaseOut"/>
+            </Transitions>
+          </Border.Transitions>
+          <TextBlock Text="3" HorizontalAlignment="Center" VerticalAlignment="Center"
+                     FontWeight="SemiBold" FontSize="13"
+                     Foreground="{Binding IsStep3, Converter={x:Static vm:BoolToAccent.WhiteOrDim}}"/>
+        </Border>
+        <TextBlock Text="When it runs" VerticalAlignment="Center"
+                   Foreground="{DynamicResource DM.Brush.FgSecondary}"/>
+      </StackPanel>
+    </Grid>
+
+    <!-- Step bodies -->
+    <Border Grid.Row="2" Classes="surface" Padding="28,24">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid>
+
+          <!-- ===== Step 1: Sources ===== -->
+          <StackPanel Spacing="14" IsVisible="{Binding IsStep1}">
+            <TextBlock Classes="section-title" Text="Pick the folders you want kept safe" Margin="0"/>
+            <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap"
+                       Text="Most people start with their entire user folder (Documents, Pictures, etc.) or the whole C: drive. You can add more later."/>
+
+            <TextBlock Classes="field-error" FontSize="13"
+                       Text="{Binding SourcesError}"
+                       IsVisible="{Binding SourcesError, Converter={x:Static vm:NotEmpty.To}}"/>
+
+            <ItemsControl ItemsSource="{Binding SourceChips}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="vm:SourceChipVm">
+                  <Border Background="{DynamicResource DM.Brush.AccentTint}"
+                          CornerRadius="8" Padding="12,8,8,8" Margin="0,0,0,6">
+                    <Grid ColumnDefinitions="Auto,10,*,Auto" VerticalAlignment="Center">
+                      <PathIcon Grid.Column="0" Data="{StaticResource Icon.Folder}"
+                                Width="14" Height="14"
+                                Foreground="{DynamicResource DM.Brush.Accent}"
+                                VerticalAlignment="Center"/>
+                      <StackPanel Grid.Column="2" Spacing="2">
+                        <TextBlock Classes="mono" FontSize="13" Text="{Binding Path}"
+                                   Foreground="{DynamicResource DM.Brush.FgPrimary}"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Classes="dim" FontSize="11" Text="{Binding SizeLabel}"/>
+                      </StackPanel>
+                      <Button Grid.Column="3" Classes="row-action-danger"
+                              Command="{Binding $parent[ItemsControl].((vm:OnboardingViewModel)DataContext).RemoveSourceCommand}"
+                              CommandParameter="{Binding Path}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <PathIcon Data="{StaticResource Icon.Trash}" Width="13" Height="13"/>
+                          <TextBlock Text="Remove"/>
+                        </StackPanel>
+                      </Button>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Classes="primary" Command="{Binding AddSourceFromTreeCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <PathIcon Data="{StaticResource Icon.Plus}" Width="14" Height="14" Foreground="White"/>
+                  <TextBlock Text="Add sources…" VerticalAlignment="Center"/>
+                </StackPanel>
+              </Button>
+              <Button Classes="ghost" Command="{Binding AddSourceByPathCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <PathIcon Data="{StaticResource Icon.FolderOpen}" Width="14" Height="14"/>
+                  <TextBlock Text="Add single folder…" VerticalAlignment="Center"/>
+                </StackPanel>
+              </Button>
+            </StackPanel>
+          </StackPanel>
+
+          <!-- ===== Step 2: Destination ===== -->
+          <StackPanel Spacing="14" IsVisible="{Binding IsStep2}">
+            <TextBlock Classes="section-title" Text="Where should the safe copy live?" Margin="0"/>
+            <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap"
+                       Text="Pick an external drive, a cloud folder you already pay for (Dropbox, OneDrive, Google Drive), a network share, or an S3 bucket. We handle the auth dance."/>
+
+            <TextBlock Classes="field-error" FontSize="13"
+                       Text="{Binding DestinationError}"
+                       IsVisible="{Binding DestinationError, Converter={x:Static vm:NotEmpty.To}}"/>
+
+            <Border Classes="callout" IsVisible="{Binding HasNoDestinations}">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="body" FontWeight="SemiBold"
+                           Text="No destinations yet"
+                           Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+                <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap"
+                           Text="Set one up and we'll come right back here."/>
+                <Button Classes="primary" HorizontalAlignment="Left"
+                        Command="{Binding CreateDestinationInlineCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <PathIcon Data="{StaticResource Icon.Plus}" Width="14" Height="14" Foreground="White"/>
+                    <TextBlock Text="Set up a destination" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </Button>
+              </StackPanel>
+            </Border>
+
+            <StackPanel Spacing="10" IsVisible="{Binding !HasNoDestinations}">
+              <!-- Selected-destinations chip list — light-blue cards
+                   with the per-kind class icon, mirroring the Sources
+                   chips so the two pickers look the same. Each chip
+                   has a × Remove button. The list is appended-to via
+                   the "Add destination" ComboBox + button below; the
+                   ComboBox excludes already-selected destinations so
+                   the same one can't be picked twice. -->
+              <!-- Chip layout MIRRORS the Advanced editor's destination
+                   chips at [BackupEditorWindow.axaml:133+] for visual
+                   parity. Easy mode shows only Edit + Remove (no Prune
+                   / Erase) per user direction — those are advanced
+                   storage-management actions that belong on the
+                   Advanced editor. Same Grid columns, same padding,
+                   same row-action button styles, same icon size — so
+                   a user toggling between Easy and Advanced never sees
+                   the destinations re-styled. -->
+              <ItemsControl ItemsSource="{Binding SelectedDestinations}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate DataType="m:Destination">
+                    <Border Background="{DynamicResource DM.Brush.AccentTint}"
+                            CornerRadius="8" Padding="12,10,12,10" Margin="0,0,0,8">
+                      <Grid ColumnDefinitions="Auto,10,*,Auto" VerticalAlignment="Center">
+                        <PathIcon Grid.Column="0"
+                                  Data="{Binding Kind, Converter={x:Static vm:DestinationKindIcon.To}}"
+                                  Width="14" Height="14"
+                                  Foreground="{DynamicResource DM.Brush.Accent}"
+                                  VerticalAlignment="Center"/>
+                        <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
+                          <TextBlock Text="{Binding Name}"
+                                     FontSize="13" FontWeight="SemiBold"
+                                     Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+                          <TextBlock Classes="dim" FontSize="11"
+                                     Text="{Binding Kind, Converter={x:Static vm:KindHumanizer.To}}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6"
+                                    VerticalAlignment="Center">
+                          <Button Classes="row-action" Content="Edit"
+                                  ToolTip.Tip="Edit this destination's settings"
+                                  Command="{Binding $parent[ItemsControl].((vm:OnboardingViewModel)DataContext).EditDestinationCommand}"
+                                  CommandParameter="{Binding}"/>
+                          <Button Classes="row-action-danger" Content="Remove"
+                                  ToolTip.Tip="Stop using this destination for this backup (data on remote stays)"
+                                  Command="{Binding $parent[ItemsControl].((vm:OnboardingViewModel)DataContext).RemoveDestinationCommand}"
+                                  CommandParameter="{Binding}"/>
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <!-- Add-another-destination picker. SHARED UserControl —
+                   same component renders in BackupEditorWindow's
+                   Advanced mode, so the two flows can't drift apart
+                   (the Add button's "disabled when nothing is picked"
+                   gate lives inside the control, not at the call
+                   site). -->
+              <v:DestinationAddPicker
+                  AvailableDestinations="{Binding AvailableDestinationsForAdd}"
+                  SelectedDestination="{Binding DestinationCandidate, Mode=TwoWay}"
+                  HasMoreToAdd="{Binding HasMoreDestinationsToAdd}"
+                  AddCommand="{Binding AddDestinationCommand}"
+                  CreateNewCommand="{Binding CreateDestinationInlineCommand}"
+                  CreateNewLabel="{Binding CreateDestinationButtonLabel}"/>
+            </StackPanel>
+          </StackPanel>
+
+          <!-- ===== Step 3: Schedule + extras ===== -->
+          <StackPanel Spacing="18" IsVisible="{Binding IsStep3}">
+            <TextBlock Classes="section-title" Text="When should it run?" Margin="0"/>
+            <Grid ColumnDefinitions="*,22,*">
+              <StackPanel Grid.Column="0" Spacing="6">
+                <TextBlock Classes="label-caps" Text="FREQUENCY"/>
+                <ComboBox ItemsSource="{Binding AvailableFrequencies}" SelectedItem="{Binding Frequency}"
+                          HorizontalAlignment="Stretch"/>
+              </StackPanel>
+              <StackPanel Grid.Column="2" Spacing="6">
+                <TextBlock Classes="label-caps" Text="TIME OF DAY"/>
+                <TimePicker SelectedTime="{Binding TimeOfDay}" ClockIdentifier="24HourClock"/>
+              </StackPanel>
+            </Grid>
+            <StackPanel Spacing="6"
+                        IsVisible="{Binding Frequency, Converter={x:Static vm:Eq.To}, ConverterParameter=Hourly}">
+              <TextBlock Classes="label-caps" Text="EVERY N HOURS"/>
+              <NumericUpDown Value="{Binding HourlyInterval}" Minimum="1" Maximum="168"/>
+            </StackPanel>
+
+            <Border Background="{DynamicResource DM.Brush.AccentTint}"
+                    CornerRadius="8" Padding="14,12">
+              <StackPanel Spacing="10">
+                <CheckBox IsChecked="{Binding ApplyRecommendedExclusions}"
+                          Content="Skip junk for me (page file, temp folders, app caches, recycle bin, cloud-sync folders)"
+                          FontWeight="SemiBold"
+                          Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+                <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap"
+                           Text="A curated list of things you almost certainly don't want to back up. We'll insert them as filter rules so you can review and tweak in the editor later."/>
+
+                <CheckBox IsChecked="{Binding InstallShellExtension}"
+                          IsVisible="{Binding IsShellExtensionAvailable}"
+                          Content="Add 'Restore an older version' to the Windows right-click menu"
+                          FontWeight="SemiBold"
+                          Foreground="{DynamicResource DM.Brush.FgPrimary}"
+                          Margin="0,4,0,0"/>
+                <TextBlock Classes="dim" FontSize="12" TextWrapping="Wrap"
+                           IsVisible="{Binding IsShellExtensionAvailable}"
+                           Text="So you can right-click a file in Explorer and pull back an older version without opening this app first. You can change this later in Settings."/>
+              </StackPanel>
+            </Border>
+
+            <TextBlock Classes="dim" FontSize="12"
+                       Text="{Binding SaveStatus}"
+                       IsVisible="{Binding SaveStatus, Converter={x:Static vm:NotEmpty.To}}"/>
+          </StackPanel>
+
+        </Grid>
+      </ScrollViewer>
+    </Border>
+
+    <!-- Footer nav. Final step shows BOTH a "Save" (schedule only) and
+         a "Save and run" (schedule + immediate first-run) button. Some
+         users set up the schedule hours before they want the first run
+         to happen and shouldn't be forced to immediately tie up the
+         machine — feedback flagged the lack of "save without running"
+         as confusing. -->
+    <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto" Margin="0,18,0,0">
+      <Button Grid.Column="0" Classes="ghost" Content="Back"
+              IsVisible="{Binding CanGoBack}"
+              IsEnabled="{Binding !SaveBusy}"
+              Command="{Binding GoBackCommand}"/>
+      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10">
+        <Button Classes="ghost" Content="Cancel" Click="OnCancel"
+                IsEnabled="{Binding !SaveBusy}"/>
+        <Button Classes="primary" Content="Continue"
+                IsVisible="{Binding CanGoForward}"
+                IsEnabled="{Binding !SaveBusy}"
+                Command="{Binding GoForwardCommand}"/>
+        <Button Classes="ghost" Content="Save"
+                IsVisible="{Binding IsFinalStep}"
+                IsEnabled="{Binding !SaveBusy}"
+                Click="OnSaveOnly"/>
+        <Button Classes="primary" Content="Save and run my first backup"
+                IsVisible="{Binding IsFinalStep}"
+                IsEnabled="{Binding !SaveBusy}"
+                Click="OnFinish"/>
+      </StackPanel>
+    </Grid>
+
+  </Grid>
+</Window>

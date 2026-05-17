@@ -1,0 +1,207 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Duplimate.ViewModels"
+        xmlns:v="using:Duplimate.Views"
+        x:Class="Duplimate.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="Duplimate"
+        Icon="avares://Duplimate/Assets/Duplimate.ico"
+        Width="1240" Height="820"
+        MinWidth="1020" MinHeight="720"
+        Background="{DynamicResource DM.Brush.BgBase}"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="40">
+
+  <Grid RowDefinitions="40,*">
+
+    <!-- ========================================================= -->
+    <!-- Custom title bar.                                           -->
+    <!-- Left 248px matches the sidebar colour (BgSurface) with its  -->
+    <!-- 1px right separator carried all the way to the top, so the  -->
+    <!-- sidebar reads as one continuous panel. Middle strip uses    -->
+    <!-- BgBase (same as the content area), the whole row is drag-   -->
+    <!-- enabled, and the three window buttons sit on the right.     -->
+    <!-- ========================================================= -->
+    <Grid Grid.Row="0" ColumnDefinitions="248,*,Auto"
+          PointerPressed="OnTitleBarPressed">
+
+      <!-- Sidebar cap: same fill + border as the sidebar below. -->
+      <Border Grid.Column="0"
+              Background="{DynamicResource DM.Brush.BgSurface}"
+              BorderBrush="{DynamicResource DM.Brush.BorderSubtle}"
+              BorderThickness="0,0,1,0"/>
+
+      <!-- Drag region over the content column. -->
+      <Border Grid.Column="1" Background="{DynamicResource DM.Brush.BgBase}"/>
+
+      <!-- Window buttons: minimize, maximize/restore, close. -->
+      <StackPanel Grid.Column="2" Orientation="Horizontal"
+                  VerticalAlignment="Stretch"
+                  Background="{DynamicResource DM.Brush.BgBase}">
+        <Button Classes="win-button" Name="MinBtn" Click="OnMinimize">
+          <!-- Horizontal bar. No Stretch: the geometry is 0px tall so
+               Stretch="Uniform" renders nothing. -->
+          <Path Data="M2,6 L12,6" Stroke="{DynamicResource DM.Brush.FgPrimary}"
+                StrokeThickness="1.6" Width="14" Height="14"
+                HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Button>
+        <Button Classes="win-button" Name="MaxBtn" Click="OnMaximize">
+          <Path Data="M3 3h10v10H3z" Stroke="{DynamicResource DM.Brush.FgPrimary}"
+                StrokeThickness="1.6" Fill="Transparent" Width="12" Height="12" Stretch="Uniform"/>
+        </Button>
+        <Button Classes="win-button win-close" Name="CloseBtn" Click="OnClose">
+          <Path Data="M3 3l10 10M13 3L3 13" Stroke="{DynamicResource DM.Brush.FgPrimary}"
+                StrokeThickness="1.6" Width="12" Height="12" Stretch="Uniform"/>
+        </Button>
+      </StackPanel>
+    </Grid>
+
+    <!-- ========================================================= -->
+    <!-- Main content: sidebar + current page                        -->
+    <!-- ========================================================= -->
+    <Grid Grid.Row="1" ColumnDefinitions="248,*">
+
+      <!-- ========== Sidebar ========== -->
+      <Border Grid.Column="0"
+              Background="{DynamicResource DM.Brush.BgSurface}"
+              BorderBrush="{DynamicResource DM.Brush.BorderSubtle}"
+              BorderThickness="0,0,1,0">
+        <DockPanel LastChildFill="True">
+
+          <!--
+            Brand: logo + wordmark. The logo is the same ICO stream used
+            for the taskbar icon, so it always matches visually. Code-behind
+            swaps the Source between the per-accent idle ICO and the
+            4 syncing frames on a 160 ms timer.
+          -->
+          <Grid DockPanel.Dock="Top" Margin="22,16,22,20"
+                ColumnDefinitions="40,*" VerticalAlignment="Center">
+            <Image Grid.Column="0" Name="SidebarLogo" Width="36" Height="36"
+                   Source="avares://Duplimate/Assets/Duplimate.ico"/>
+            <TextBlock Grid.Column="1" Text="Duplimate"
+                       VerticalAlignment="Center" Margin="12,0,0,0"
+                       FontFamily="{DynamicResource DM.Font.Display}"
+                       FontSize="17" FontWeight="SemiBold"
+                       Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+          </Grid>
+
+          <TextBlock DockPanel.Dock="Top" Text="YOUR BACKUPS" Classes="label-caps" Margin="26,0,26,8"/>
+
+          <!-- Primary nav. "Restore files" was removed from here — the
+               per-backup BackupCard now hosts a "Restore files" button
+               that takes the user to the same wizard, scoped to that
+               backup. The "WHEN SOMETHING HAPPENS" group label was also
+               dropped — Activity & logs is a diagnostics/footer-tier
+               feature and now sits below Settings. -->
+          <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,16">
+            <RadioButton Classes="nav" GroupName="nav"
+                         IsChecked="{Binding SelectedNav, Converter={x:Static v:NavConverters.IsSelected}, ConverterParameter={x:Static vm:NavItem.Backups}, Mode=TwoWay}">
+              <StackPanel Orientation="Horizontal" Spacing="12">
+                <PathIcon Data="{StaticResource Icon.Backup}" Width="16" Height="16"/>
+                <TextBlock Text="Backups" VerticalAlignment="Center"/>
+              </StackPanel>
+            </RadioButton>
+            <RadioButton Classes="nav" GroupName="nav"
+                         IsChecked="{Binding SelectedNav, Converter={x:Static v:NavConverters.IsSelected}, ConverterParameter={x:Static vm:NavItem.Destinations}, Mode=TwoWay}">
+              <StackPanel Orientation="Horizontal" Spacing="12">
+                <PathIcon Data="{StaticResource Icon.Destinations}" Width="16" Height="16"/>
+                <TextBlock Text="Destinations" VerticalAlignment="Center"/>
+              </StackPanel>
+            </RadioButton>
+          </StackPanel>
+
+          <!-- Footer: Settings → Activity & logs → version + GitHub.
+               Restore is no longer here (per-backup button replaces).
+               Activity & logs is below Settings since it's a
+               diagnostics/troubleshooting view, not a primary nav. -->
+          <StackPanel DockPanel.Dock="Bottom" Margin="0,0,0,18" Spacing="2">
+            <Border Classes="rule" Margin="24,0,24,10"/>
+            <RadioButton Classes="nav" GroupName="nav"
+                         IsChecked="{Binding SelectedNav, Converter={x:Static v:NavConverters.IsSelected}, ConverterParameter={x:Static vm:NavItem.Settings}, Mode=TwoWay}">
+              <StackPanel Orientation="Horizontal" Spacing="12">
+                <PathIcon Data="{StaticResource Icon.Settings}" Width="16" Height="16"/>
+                <TextBlock Text="Settings" VerticalAlignment="Center"/>
+              </StackPanel>
+            </RadioButton>
+            <RadioButton Classes="nav" GroupName="nav"
+                         IsChecked="{Binding SelectedNav, Converter={x:Static v:NavConverters.IsSelected}, ConverterParameter={x:Static vm:NavItem.Logs}, Mode=TwoWay}">
+              <StackPanel Orientation="Horizontal" Spacing="12">
+                <PathIcon Data="{StaticResource Icon.Activity}" Width="16" Height="16"/>
+                <TextBlock Text="Activity &amp; logs" VerticalAlignment="Center"/>
+              </StackPanel>
+            </RadioButton>
+
+            <!-- Footer: dropped the redundant app-name line — the
+                 sidebar masthead already says "Duplimate". What's
+                 actually useful here:
+                   1. Attribution + provenance — "Powered by Duplicacy"
+                      with the engine name as a clickable link to
+                      duplicacy.com (legally clear + credits the work
+                      we depend on).
+                   2. Repo link — GitHub Octocat for "where do I
+                      report a bug / read the source".
+                   3. Version — small, dim, on its own line so it stays
+                      out of the way for users who don't care AND
+                      visible for users filing a bug report.
+                 Two-row layout keeps both rows breathable rather than
+                 cramming three elements into one line at 12px. -->
+            <Border Classes="rule" Margin="24,16,24,12"/>
+            <!-- Two-line footer:
+                   Row 1: GitHub Octocat (the only interactive control —
+                          for bug reports / source) + version text.
+                   Row 2: plain "Powered by Duplicacy" attribution (no
+                          longer a link; the engine name is credited
+                          but doesn't compete with the GitHub button
+                          for clicks).
+                 Tight Spacing="2" between the two rows so the block
+                 reads as one footer unit, not two stacked items. -->
+            <StackPanel Margin="26,0,16,0" Spacing="2">
+              <Grid ColumnDefinitions="Auto,8,Auto,*" VerticalAlignment="Center">
+                <Button Grid.Column="0" Classes="github-link"
+                        ToolTip.Tip="View on GitHub"
+                        Click="OnOpenGitHub">
+                  <PathIcon Classes="filled"
+                            Data="{StaticResource Icon.GitHub}"
+                            Width="16" Height="16"/>
+                </Button>
+                <TextBlock x:Name="FooterVersionText" Grid.Column="2"
+                           Classes="dim" FontSize="11"
+                           VerticalAlignment="Center"/>
+              </Grid>
+              <!-- "Powered by Duplicacy" with the engine name as a
+                   clickable link to duplicacy.com. The Button uses
+                   the github-link class (already styled as a
+                   compact, link-flavoured button) so the visual
+                   weight matches the GitHub Octocat above. utm
+                   tagging credits the referrer source so the
+                   Duplicacy maintainers can see traffic from
+                   Duplimate users in their analytics. -->
+              <!-- Spacing=2 (was 4) — the natural font sidebearings of
+                   the trailing "y" + leading "D" already provide ~6px
+                   of visual whitespace, so a 4px container gap on top
+                   produced "Powered by   Duplicacy" with a too-wide
+                   hole. Diagnosed via PoweredByLinkTests bounds dump. -->
+              <StackPanel Orientation="Horizontal" Spacing="2"
+                          Margin="0,0,0,2">
+                <TextBlock Text="Powered by"
+                           Classes="dim" FontSize="12"
+                           VerticalAlignment="Center"/>
+                <Button Classes="text-link"
+                        Click="OnOpenDuplicacy"
+                        ToolTip.Tip="Open duplicacy.com">
+                  <TextBlock Text="Duplicacy" FontSize="12"/>
+                </Button>
+              </StackPanel>
+            </StackPanel>
+          </StackPanel>
+
+          <Border/>
+        </DockPanel>
+      </Border>
+
+      <!-- ========== Content host ========== -->
+      <ContentControl Grid.Column="1" Content="{Binding CurrentPage}"/>
+    </Grid>
+  </Grid>
+</Window>

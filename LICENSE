@@ -1,0 +1,45 @@
+MIT License
+
+Copyright (c) 2026 Erwin Mayer
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+Note on the bundled Duplicacy CLI
+
+Duplimate ships next to a copy of the Duplicacy command-line interface,
+which it shells out to in order to perform actual backups. The Duplicacy CLI
+is published by Acrosync LLC under its own separate license, NOT under the
+MIT terms above:
+
+  - Free for personal use, by individuals on their own machines for their
+    personal data.
+  - Commercial use requires a paid license from Acrosync. See
+    https://duplicacy.com/customer_portal for current terms.
+
+The MIT license above grants you rights only to the Duplimate source
+code in this repository. It does not, and cannot, modify or extend your
+rights to the bundled Duplicacy binary. If you intend to use Duplimate
+commercially, please review Duplicacy's licensing separately and obtain a
+Duplicacy commercial license if required.
+
+You can also replace the bundled Duplicacy CLI with your own copy (newer
+version, custom build, or one you've licensed separately) — see the
+"Bring your own duplicacy.exe" section in the README.

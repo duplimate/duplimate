@@ -1,0 +1,58 @@
+<!--
+  Duplimate app icon — master SVG spec, 1024×1024.
+
+  Design: "cloud-check" — a soft, friendly cloud with a check mark
+  cut out of its body. Reads as "safely stored in the sky" and
+  stays legible at 16×16.
+
+  Geometry notes (all values in the 1024 viewBox):
+    - Tile:        1024×1024 rounded square, corner radius 184 (~18%).
+    - Cloud body:  five overlapping ellipses + one rounded base.
+        main bump:        cx=512, cy=410, r=184
+        left shoulder:    cx=317, cy=491, r=133
+        right bump:       cx=696, cy=451, r=154
+        lower-right:      cx=809, cy=564, r=102
+        lower-left:       cx=225, cy=594, r=102
+        base rect:        x=174, y=533, w=676, h=184, r=92
+    - Check:       stroke path, 77px thick, rounded ends.
+        line:      (379, 512) → (481, 614) → (666, 430)
+    - Colors:      tile=accent; cloud=ink (#FBFAF6); check=accent
+                   (the check punches back through the cloud).
+
+  To re-theme: change every `fill="#0061FF"` below and the
+  corresponding `Accent` in tools/build-icon.ps1. The named accents
+  are Ocean (#0061FF), Emerald (#059669), Plum (#7C3AED),
+  Graphite (#1F2937), Terracotta (#C2410C).
+
+  To change the design: edit both this SVG and the matching drawing
+  in tools/build-icon.ps1, since the PS script is the authoritative
+  renderer (it doesn't parse SVG). See docs/icon.md.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <clipPath id="tile">
+      <rect x="0" y="0" width="1024" height="1024" rx="184" ry="184"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#tile)">
+    <!-- Tile background. Swap this fill to re-theme. -->
+    <rect x="0" y="0" width="1024" height="1024" fill="#0061FF"/>
+
+    <!-- Cloud body (ink), drawn as overlapping ellipses + a soft base. -->
+    <g fill="#FBFAF6">
+      <ellipse cx="512" cy="410" rx="184" ry="184"/>
+      <ellipse cx="317" cy="491" rx="133" ry="133"/>
+      <ellipse cx="696" cy="451" rx="154" ry="154"/>
+      <ellipse cx="809" cy="564" rx="102" ry="102"/>
+      <ellipse cx="225" cy="594" rx="102" ry="102"/>
+      <rect x="174" y="533" width="676" height="184" rx="92" ry="92"/>
+    </g>
+
+    <!-- Check (in accent, cuts back through the cloud). -->
+    <path d="M 379 512 L 481 614 L 666 430"
+          stroke="#0061FF" stroke-width="77"
+          stroke-linecap="round" stroke-linejoin="round"
+          fill="none"/>
+  </g>
+</svg>

@@ -1,0 +1,155 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Duplimate.ViewModels"
+             x:Class="Duplimate.Views.DestinationsView"
+             x:DataType="vm:DestinationsViewModel"
+             Background="{DynamicResource DM.Brush.BgBase}">
+
+  <ScrollViewer>
+    <StackPanel Margin="48,40,48,48">
+
+      <!-- Page header: plain title + subtitle, flush left. -->
+      <TextBlock Classes="page-title" Text="Where backups live"/>
+      <TextBlock Classes="page-subtitle" MaxWidth="720"
+                 Text="A destination is a place your backups are stored — an external drive, a cloud account, or a network share. Add as many as you like; the same backup can go to several at once."/>
+
+      <!-- Toolbar + list: only when we have rows. Empty state below owns the
+           primary CTA so there's exactly one obvious next step. -->
+      <StackPanel IsVisible="{Binding !IsEmpty}">
+        <Border Height="1" Background="{DynamicResource DM.Brush.BorderSubtle}" Margin="0,28,0,16"/>
+        <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,18" VerticalAlignment="Center">
+          <!-- Count display matches the Backups page: large accent
+               figure paired with a small caps word, replacing the
+               prior dim "X destinations" plain label that the user
+               called out as bland. -->
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10"
+                      VerticalAlignment="Center">
+            <TextBlock Text="{Binding Rows.Count}" Classes="count-figure"/>
+            <TextBlock Text="{Binding DestinationsCountWord}" Classes="count-word"/>
+          </StackPanel>
+          <Button Grid.Column="2" Classes="primary"
+                  Command="{Binding AddNewCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <PathIcon Data="{StaticResource Icon.Plus}" Width="14" Height="14" Foreground="White"/>
+              <TextBlock Text="Add a destination" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+        </Grid>
+
+        <!-- Container border + per-row separators. Strategy: the
+             container draws full border + corner radius. Each row
+             paints ONLY its content (no per-row borders). Separators
+             between rows are rendered as 1-pixel-tall Border lines
+             that live at the TOP of every row except the first. We
+             scope visibility via a `nth-child(n+2)` selector so only
+             rows 2..N show their separator — Avalonia 11's CSS-style
+             selector matches reliably this way (the prior
+             `:nth-child(1) > Border` shape didn't always pick up the
+             ContentPresenter wrapping in the items panel, so the
+             first row's separator could leak through and read as a
+             double border at the top of the list). -->
+        <Border Background="{DynamicResource DM.Brush.BgSurface}"
+                BorderBrush="{DynamicResource DM.Brush.BorderSubtle}"
+                BorderThickness="1"
+                CornerRadius="{DynamicResource DM.CornerRadius}"
+                ClipToBounds="True">
+          <ItemsControl ItemsSource="{Binding Rows}">
+            <ItemsControl.Styles>
+              <!-- Show the top hairline separator on rows 2..N.
+                   `nth-child(n+2)` matches every ContentPresenter
+                   from index 2 onwards (1-based). The Border tagged
+                   `dest-row-sep` is a 1px line laid out as the first
+                   visible child of the row template; default
+                   BorderThickness is 0 so the first row stays clean. -->
+              <Style Selector="ContentPresenter:nth-child(n+2) Border.dest-row-sep">
+                <Setter Property="Height" Value="1"/>
+                <Setter Property="Background" Value="{DynamicResource DM.Brush.BorderSubtle}"/>
+              </Style>
+            </ItemsControl.Styles>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="vm:DestinationRow">
+                <StackPanel>
+                  <Border Classes="dest-row-sep"/>
+                  <Border Padding="20,16">
+                  <Grid ColumnDefinitions="44,*,Auto,Auto" VerticalAlignment="Center">
+
+                    <Border Grid.Column="0" Width="34" Height="34" CornerRadius="8"
+                            Background="{DynamicResource DM.Brush.AccentTint}"
+                            HorizontalAlignment="Left">
+                      <PathIcon Data="{Binding KindGlyph, Converter={x:Static vm:ResourceLookup.To}}"
+                                Width="18" Height="18"
+                                Foreground="{DynamicResource DM.Brush.Accent}"/>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" Spacing="3" Margin="14,0,0,0">
+                      <TextBlock Text="{Binding Name}" Classes="row-title"/>
+                      <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="{Binding Kind}" Classes="dim"/>
+                        <TextBlock Text="·" Foreground="{DynamicResource DM.Brush.FgDim}"/>
+                        <TextBlock Classes="mono" Text="{Binding Url}"
+                                   TextTrimming="CharacterEllipsis" MaxWidth="560"
+                                   FontSize="12"/>
+                      </StackPanel>
+                    </StackPanel>
+
+                    <Button Grid.Column="2" Classes="row-action"
+                            Command="{Binding $parent[ItemsControl].((vm:DestinationsViewModel)DataContext).EditCommand}"
+                            CommandParameter="{Binding}">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="{StaticResource Icon.Edit}" Width="13" Height="13"/>
+                        <TextBlock Text="Edit"/>
+                      </StackPanel>
+                    </Button>
+                    <!-- Delete is destructive: it removes the destination
+                         from Duplimate AND erases the Duplicacy data
+                         Duplimate wrote there (snapshots/, chunks/,
+                         config). The user is asked to type-confirm before
+                         the wipe, then a modal progress dialog runs the
+                         cleanup so they can't quit the app mid-wipe. The
+                         tooltip says so explicitly — without it, "Delete"
+                         reads like a config-only remove and users have
+                         been surprised to see their cloud-storage data
+                         gone. -->
+                    <Button Grid.Column="3" Classes="row-action-danger" Margin="6,0,0,0"
+                            ToolTip.Tip="Removes this destination from Duplimate AND erases the Duplicacy data stored there (snapshots, chunks). Foreign data on the same folder is left alone. You'll be asked to type-confirm before anything is deleted."
+                            Command="{Binding $parent[ItemsControl].((vm:DestinationsViewModel)DataContext).DeleteCommand}"
+                            CommandParameter="{Binding}">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="{StaticResource Icon.Trash}" Width="13" Height="13"/>
+                        <TextBlock Text="Delete"/>
+                      </StackPanel>
+                    </Button>
+                  </Grid>
+                </Border>
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Border>
+      </StackPanel>
+
+      <!-- Empty state: CTA lives inside the card so the eye lands on it. -->
+      <Border IsVisible="{Binding IsEmpty}" Classes="empty-state" Margin="0,28,0,0">
+        <Grid ColumnDefinitions="Auto,20,*">
+          <Border Grid.Column="0" Classes="empty-state-glyph">
+            <PathIcon Data="{StaticResource Icon.Cloud}"/>
+          </Border>
+          <StackPanel Grid.Column="2" Spacing="16">
+            <TextBlock Classes="card-title" Text="Add your first destination"/>
+            <TextBlock Classes="body" TextWrapping="Wrap"
+                       Text="Pick whatever makes sense for you: an external drive, a cloud folder you're already paying for, a network share at home, or an S3-compatible bucket. We'll handle the auth dance."/>
+            <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0">
+              <Button Classes="primary" Command="{Binding AddNewCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <PathIcon Data="{StaticResource Icon.Plus}" Width="14" Height="14" Foreground="White"/>
+                  <TextBlock Text="Add a destination" VerticalAlignment="Center"/>
+                </StackPanel>
+              </Button>
+            </StackPanel>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

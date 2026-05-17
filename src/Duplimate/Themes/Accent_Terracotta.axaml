@@ -1,0 +1,22 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Light">
+      <!-- Hover = ~8% darker, Deep = ~25% darker. -->
+      <SolidColorBrush x:Key="DM.Brush.Accent"          Color="#FFC2410C"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentHover"     Color="#FFAF3A0A"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentDeep"      Color="#FF923108"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTint"      Color="#1AC2410C"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTintHover" Color="#26C2410C"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTintFg"    Color="#FF923108"/>
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="DM.Brush.Accent"          Color="#FFF97316"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentHover"     Color="#FFFB923C"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentDeep"      Color="#FFEA580C"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTint"      Color="#33F97316"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTintHover" Color="#55F97316"/>
+      <SolidColorBrush x:Key="DM.Brush.AccentTintFg"    Color="#FFFDBA74"/> <!-- orange-300 -->
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

@@ -1,0 +1,475 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Duplimate.ViewModels"
+        xmlns:m="using:Duplimate.Models"
+        x:Class="Duplimate.Views.DestinationEditorWindow"
+        x:DataType="vm:DestinationEditorViewModel"
+        Title="Destination — Duplimate"
+        Width="820" Height="780"
+        MinWidth="720" MinHeight="560"
+        Background="{DynamicResource DM.Brush.BgBase}"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid RowDefinitions="Auto,*,Auto" Margin="36,30,36,26">
+
+    <!-- Header -->
+    <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,18">
+      <TextBlock Classes="page-title" Text="Destination"/>
+      <TextBlock Classes="page-subtitle" MaxWidth="640"
+                 Text="Where should your backups live? Auth tokens and storage passwords stay on this machine."/>
+    </StackPanel>
+
+    <!-- ScrollViewer without Padding on purpose: on real Windows the
+         FluentTheme scroller appears to compute Extent from pre-padding
+         measurement, which can leave the last control outside the
+         scrollable range. Using Margin on the inner StackPanel avoids
+         that decoupling. -->
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Visible"
+                  HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Spacing="18">
+
+        <!-- Card: Type (always first — drives the rest of the form). -->
+        <Border Classes="surface">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="label-caps">
+              <Run Text="TYPE "/>
+              <Run Classes="req-star" Text="*"/>
+            </TextBlock>
+            <ComboBox ItemsSource="{Binding AvailableKinds}"
+                      SelectedItem="{Binding Kind}"
+                      HorizontalAlignment="Stretch"
+                      PlaceholderText="Pick a destination type"
+                      Classes.error="{Binding KindError, Converter={x:Static vm:NotEmpty.To}}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate DataType="m:DestinationKind">
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <PathIcon Data="{Binding ., Converter={x:Static vm:DestinationKindIcon.To}}"
+                              Width="14" Height="14"
+                              Foreground="{DynamicResource DM.Brush.FgSecondary}"
+                              VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding ., Converter={x:Static vm:KindHumanizer.To}}"
+                               VerticalAlignment="Center"/>
+                  </StackPanel>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Classes="field-error" Text="{Binding KindError}"
+                       IsVisible="{Binding KindError, Converter={x:Static vm:NotEmpty.To}}"/>
+          </StackPanel>
+        </Border>
+
+        <!-- Card: LOCAL / EXTERNAL -->
+        <Border Classes="surface" IsVisible="{Binding ShowLocalPath}">
+          <StackPanel Spacing="16">
+            <TextBlock Classes="section-title" Text="Folder on this PC" Margin="0"/>
+            <StackPanel Spacing="6">
+              <TextBlock Classes="label-caps">
+                <Run Text="FOLDER PATH "/>
+                <Run Classes="req-star" Text="*"/>
+              </TextBlock>
+              <Grid ColumnDefinitions="*,10,Auto">
+                <TextBox Grid.Column="0" Text="{Binding PathOrSubpath}"
+                         Classes.error="{Binding PathError, Converter={x:Static vm:NotEmpty.To}}"
+                         Watermark="e.g. M:\Backup\Duplicacy"/>
+                <Button Grid.Column="2" Classes="ghost"
+                        Command="{Binding BrowseFolderCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <PathIcon Data="{StaticResource Icon.FolderOpen}" Width="14" Height="14"/>
+                    <TextBlock Text="Browse…" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </Button>
+              </Grid>
+              <TextBlock Classes="field-error" Text="{Binding PathError}"
+                         IsVisible="{Binding PathError, Converter={x:Static vm:NotEmpty.To}}"/>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- Card: NETWORK -->
+        <Border Classes="surface" IsVisible="{Binding ShowNetworkPath}">
+          <StackPanel Spacing="16">
+            <TextBlock Classes="section-title" Text="Network share" Margin="0"/>
+            <StackPanel Spacing="6">
+              <TextBlock Classes="label-caps">
+                <Run Text="UNC PATH "/>
+                <Run Classes="req-star" Text="*"/>
+              </TextBlock>
+              <TextBox Text="{Binding PathOrSubpath}"
+                       Classes.error="{Binding PathError, Converter={x:Static vm:NotEmpty.To}}"
+                       Watermark="\\server\share\folder"/>
+              <TextBlock Classes="field-error" Text="{Binding PathError}"
+                         IsVisible="{Binding PathError, Converter={x:Static vm:NotEmpty.To}}"/>
+            </StackPanel>
+            <Grid ColumnDefinitions="*,22,*">
+              <StackPanel Grid.Column="0" Spacing="6">
+                <TextBlock Classes="label-caps" Text="USERNAME (OPTIONAL)"/>
+                <TextBox Text="{Binding NetworkUsername}"/>
+              </StackPanel>
+              <StackPanel Grid.Column="2" Spacing="6">
+                <TextBlock Classes="label-caps" Text="PASSWORD"/>
+                <TextBox Text="{Binding NetworkPasswordInput}" PasswordChar="•"/>
+              </StackPanel>
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <!-- Card: OAUTH (cloud) — essentials only; subfolder moved to Options. -->
+        <Border Classes="surface" IsVisible="{Binding ShowOAuth}">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="section-title" Text="Connect your cloud account" Margin="0"/>
+
+            <Border Classes="callout">
+              <StackPanel Spacing="6">
+                <!-- Both lines pinned to FgPrimary. The callout sits on
+                     AccentTint and contrast with FgSecondary varies per
+                     accent (some accent tints are warm enough that
+                     FgSecondary loses readability) — FgPrimary is
+                     reliable across every accent we ship. -->
+                <TextBlock Classes="body" TextWrapping="Wrap"
+                           Text="{Binding OAuthScopeExplanation}"/>
+                <TextBlock Classes="body" TextWrapping="Wrap"
+                           Text="Click Connect. In the browser, sign in and copy the token the helper shows. Paste it below and it'll verify automatically."/>
+              </StackPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Classes="primary"
+                      Content="{Binding OAuthConnectButtonText}"
+                      Command="{Binding OpenOAuthHelperCommand}"/>
+            </StackPanel>
+
+            <!-- Token input: red border when auth verification has
+                 returned a failure (Classes.error toggles the existing
+                 `error` border styling that required-field validation
+                 also uses). Inline Paste button at the right so the
+                 user doesn't have to right-click → Paste in the
+                 TextBox; the clipboard read happens in code-behind. -->
+            <!-- PasswordChar='•' so a typed/pasted token is masked
+                 (avoids leaving secrets on screen during a screen-share).
+                 For an already-saved destination, the watermark
+                 advertises "leave empty to keep existing" so the user
+                 doesn't have to re-paste their token just to edit
+                 something else on the form. The error border only
+                 lights up when validation actually fails (post-paste). -->
+            <Grid ColumnDefinitions="*,8,Auto">
+              <TextBox Grid.Column="0"
+                       x:Name="OAuthTokenBox"
+                       Text="{Binding OAuthTokenInput, UpdateSourceTrigger=PropertyChanged}"
+                       PasswordChar="•"
+                       FontFamily="{DynamicResource DM.Font.Mono}" FontSize="12"
+                       Classes.error="{Binding IsAuthError}"
+                       Watermark="{Binding TokenInputWatermark}"/>
+              <Button Grid.Column="2" Classes="ghost"
+                      Click="OnPasteOAuthToken"
+                      ToolTip.Tip="Paste from clipboard">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <PathIcon Data="{StaticResource Icon.Clipboard}" Width="13" Height="13"/>
+                  <TextBlock Text="Paste" VerticalAlignment="Center"/>
+                </StackPanel>
+              </Button>
+            </Grid>
+
+            <!-- Token-check status: a tinted callout the user can't miss.
+                 Three exclusive states, each with its own colour-coded
+                 background so a busy/success/error transition is
+                 unambiguous at a glance:
+                   • VERIFYING (amber) — gives explicit "wait, this is
+                     not an error" copy so the user doesn't try to
+                     restart their flow because they thought the form
+                     was broken.
+                   • VERIFIED (accent tint, ✓) — confirms the token
+                     reached the provider and Save will succeed.
+                   • COULDN'T VERIFY (danger tint, ✕) — final-state
+                     failure with a recovery hint.
+                 Hidden entirely when nothing's been pasted yet so
+                 first-time users don't see a stray status row before
+                 they've even started.
+
+                 Layout per row: Auto-sized icon + bold heading on
+                 line 1, body status text wrapping below. The Border
+                 has Padding so the callout reads as a "panel" rather
+                 than inline copy. -->
+            <Border Classes="callout"
+                    Padding="14,10"
+                    CornerRadius="{DynamicResource DM.CornerRadiusSmall}"
+                    BorderThickness="1"
+                    Background="{DynamicResource DM.Brush.WarnTint}"
+                    BorderBrush="{DynamicResource DM.Brush.Warn}"
+                    IsVisible="{Binding IsAuthVerifying}">
+              <StackPanel Spacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                  <ProgressBar IsIndeterminate="True"
+                               Width="56" Height="3"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource DM.Brush.Warn}"
+                               Background="{DynamicResource DM.Brush.WarnTint}"/>
+                  <TextBlock Text="Checking your token with the provider…"
+                             FontWeight="SemiBold" FontSize="13"
+                             Foreground="{DynamicResource DM.Brush.WarnTintFg}"
+                             VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Classes="body" TextWrapping="Wrap"
+                           FontSize="12"
+                           Foreground="{DynamicResource DM.Brush.FgPrimary}"
+                           Text="This usually takes a couple of seconds. If you click Save before it finishes, you'll see a 'token check still in progress' message — that's not a real error, just wait a moment and try again."/>
+              </StackPanel>
+            </Border>
+
+            <Border Padding="14,10"
+                    CornerRadius="{DynamicResource DM.CornerRadiusSmall}"
+                    BorderThickness="1"
+                    Background="{DynamicResource DM.Brush.AccentTint}"
+                    BorderBrush="{DynamicResource DM.Brush.Accent}"
+                    IsVisible="{Binding IsAuthSuccess}">
+              <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <TextBlock Text="✓" FontWeight="Bold" FontSize="16"
+                           Foreground="{DynamicResource DM.Brush.AccentTintFg}"
+                           VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding AuthStatus}"
+                           FontWeight="SemiBold" FontSize="13"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource DM.Brush.AccentTintFg}"
+                           VerticalAlignment="Center"/>
+              </StackPanel>
+            </Border>
+
+            <Border Padding="14,10"
+                    CornerRadius="{DynamicResource DM.CornerRadiusSmall}"
+                    BorderThickness="1"
+                    Background="{DynamicResource DM.Brush.DangerTint}"
+                    BorderBrush="{DynamicResource DM.Brush.Danger}"
+                    IsVisible="{Binding IsAuthError}">
+              <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Top">
+                <TextBlock Text="✕" FontWeight="Bold" FontSize="16"
+                           Foreground="{DynamicResource DM.Brush.DangerTintFg}"
+                           VerticalAlignment="Top"/>
+                <TextBlock Text="{Binding AuthStatus}"
+                           FontWeight="SemiBold" FontSize="13"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource DM.Brush.DangerTintFg}"
+                           VerticalAlignment="Top"/>
+              </StackPanel>
+            </Border>
+
+            <!-- Cloud subfolder — auto-fills from the destination name
+                 on save when blank, so it's NOT marked required (no
+                 red star). Hidden entirely in Simplified mode (Easy
+                 wizard) where the auto-fill path is always fine — the
+                 user shouldn't have to think about which subfolder
+                 inside their cloud account holds the backup. Earlier
+                 this lived inside the "Options" expander, which meant
+                 first-time users created cloud destinations with an
+                 empty PathOrSubpath and the Duplicacy storage URL
+                 came out as just "dropbox://" → "Unrecognizable
+                 storage URL" failure. The auto-fill closes that. -->
+            <StackPanel Spacing="6" IsVisible="{Binding ShowCloudSubfolderField}">
+              <TextBlock Classes="label-caps" Text="CLOUD SUBFOLDER"/>
+              <TextBox Text="{Binding PathOrSubpath}"
+                       Watermark="e.g. my-duplicacy-repo — leave blank and we'll auto-name from this destination"/>
+              <TextBlock Classes="helper"
+                         Text="A folder under your cloud account where this backup's data lives. Duplicacy creates it on first run. Leave blank to auto-name from the destination name on save."/>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- Card: S3 essentials. Region + prefix moved to Options. -->
+        <Border Classes="surface" IsVisible="{Binding ShowS3}">
+          <StackPanel Spacing="16">
+            <TextBlock Classes="section-title" Text="S3 storage" Margin="0"/>
+            <Grid ColumnDefinitions="*,22,*">
+              <StackPanel Grid.Column="0" Spacing="6">
+                <TextBlock Classes="label-caps" Text="ENDPOINT"/>
+                <TextBox Text="{Binding S3Endpoint}" Watermark="s3.us-east-1.amazonaws.com"/>
+              </StackPanel>
+              <StackPanel Grid.Column="2" Spacing="6">
+                <TextBlock Classes="label-caps">
+                  <Run Text="BUCKET "/>
+                  <Run Classes="req-star" Text="*"/>
+                </TextBlock>
+                <TextBox Text="{Binding S3Bucket}" Watermark="my-bucket"
+                         Classes.error="{Binding BucketError, Converter={x:Static vm:NotEmpty.To}}"/>
+                <TextBlock Classes="field-error" Text="{Binding BucketError}"
+                           IsVisible="{Binding BucketError, Converter={x:Static vm:NotEmpty.To}}"/>
+              </StackPanel>
+            </Grid>
+            <Grid ColumnDefinitions="*,22,*">
+              <StackPanel Grid.Column="0" Spacing="6">
+                <TextBlock Classes="label-caps" Text="ACCESS KEY"/>
+                <TextBox Text="{Binding S3AccessKeyInput}"/>
+              </StackPanel>
+              <StackPanel Grid.Column="2" Spacing="6">
+                <TextBlock Classes="label-caps" Text="SECRET KEY"/>
+                <TextBox Text="{Binding S3SecretKeyInput}" PasswordChar="•"/>
+              </StackPanel>
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <!-- Card: ENCRYPTION — essential default, kept prominent. -->
+        <Border Classes="surface">
+          <StackPanel Spacing="12">
+            <Border Classes="master-toggle">
+              <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                <!-- 15px label so the master toggle leads visually
+                     against the 14px body and 11px label-caps inside
+                     the same card; SemiBold inline keeps the gateway
+                     status legible at a glance. -->
+                <CheckBox Grid.Column="0" IsChecked="{Binding Encrypted}"
+                          Content="Encrypt storage"
+                          FontSize="15"
+                          FontWeight="SemiBold"
+                          Foreground="{DynamicResource DM.Brush.FgPrimary}"/>
+                <!-- Cloud/S3 only — the destinations where the data
+                     leaves the user's physical possession. Local and
+                     network shares hide this; the user can still tick
+                     the box, just no nudge. -->
+                <TextBlock Grid.Column="2" Text="RECOMMENDED"
+                           FontSize="11" FontWeight="SemiBold"
+                           LetterSpacing="1.0"
+                           VerticalAlignment="Center"
+                           IsVisible="{Binding ShowEncryptionRecommendedBadge}"
+                           Foreground="{DynamicResource DM.Brush.Accent}"/>
+              </Grid>
+            </Border>
+            <!-- Description sits OUTSIDE the tinted band so it reads
+                 as helper copy at FgSecondary, not as part of the
+                 toggle row. Tells the user what the toggle does. -->
+            <TextBlock Classes="helper" Margin="0"
+                       Text="Encrypts data with a password before it leaves your machine. The password lives only on this PC."/>
+            <StackPanel Spacing="6" IsVisible="{Binding Encrypted}" Margin="0,4,0,0">
+              <TextBlock Classes="label-caps" Text="STORAGE PASSWORD"/>
+              <!-- IsEnabled gates editing: for an already-encrypted
+                   destination we lock the field and surface a masked
+                   watermark so the user can see "yes, a password is
+                   set" without giving them a setter we can't honour
+                   (see StoragePasswordIsLocked on the VM for the why).
+                   On a NEW destination, the field is editable and the
+                   watermark hints that we'll auto-generate on save.
+                   Side-by-side with a "Change password…" button that
+                   only appears in the locked state — clicking it opens
+                   ChangeStoragePasswordWindow which runs the duplicacy
+                   `password` rotation against the storage. -->
+              <Grid ColumnDefinitions="*,8,Auto">
+                <TextBox Grid.Column="0"
+                         Text="{Binding StoragePasswordInput}" PasswordChar="•"
+                         Watermark="{Binding StoragePasswordWatermark}"
+                         IsEnabled="{Binding StoragePasswordEditable}"/>
+                <Button Grid.Column="2" Classes="ghost" Content="Change password…"
+                        Click="OnChangeStoragePassword"
+                        IsVisible="{Binding StoragePasswordIsLocked}"
+                        ToolTip.Tip="Re-encrypt the storage's master key with a new password (instant — only touches the small config file at the storage root)"/>
+              </Grid>
+              <!-- Helper text changes based on whether the field is
+                   locked: locked → explain that the password can be
+                   rotated via Duplicacy's CLI but Duplimate hasn't
+                   wired the dialog yet; unlocked → the standard
+                   "store this safely" reminder. -->
+              <TextBlock Classes="helper"
+                         IsVisible="{Binding StoragePasswordIsLocked}"
+                         Text="A password is already set. Use the Change password… button to rotate it — Duplicacy re-encrypts the small config file at the storage root with the new password (the chunks themselves stay encrypted with the same master key, so the operation is instant regardless of how much data is in the storage)."/>
+              <TextBlock Classes="helper"
+                         IsVisible="{Binding !StoragePasswordIsLocked}"
+                         Text="Must be at least 8 characters. Losing this password means losing access to this backup — store it safely (e.g. your password manager). Leave blank to let Duplimate generate a strong one and show it to you once."/>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- Options: collapsed by default. Houses the non-essential knobs. -->
+        <StackPanel Spacing="12">
+          <Button Classes="advanced-toggle-btn" x:Name="OptionsToggleButton"
+                  HorizontalAlignment="Left"
+                  Command="{Binding ToggleOptionsCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="{Binding OptionsToggleLabel}" VerticalAlignment="Center"/>
+              <TextBlock Text="(name, folder override, drive-letter match…)"
+                         Classes="dim" FontSize="12" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+
+          <Border Classes="surface"
+                  IsVisible="{Binding IsOptionsOpen}">
+            <StackPanel Spacing="16">
+
+              <!-- Name override (auto-generated if left blank). -->
+              <StackPanel Spacing="6">
+                <TextBlock Classes="label-caps" Text="NAME"/>
+                <TextBox Text="{Binding Name}"
+                         Watermark="{Binding SuggestedName}"
+                         Classes.error="{Binding NameError, Converter={x:Static vm:NotEmpty.To}}"/>
+                <TextBlock Classes="helper"
+                           Text="Leave blank and we'll use the suggestion above. Must be unique across destinations."/>
+                <TextBlock Classes="field-error" Text="{Binding NameError}"
+                           IsVisible="{Binding NameError, Converter={x:Static vm:NotEmpty.To}}"/>
+              </StackPanel>
+
+              <!-- Cloud subfolder moved out of Options to the OAuth
+                   card itself — it's required for cloud destinations
+                   and hiding it caused the "dropbox://" empty-URL
+                   regression. -->
+
+              <!-- Volume letter / label (local/external). -->
+              <Grid ColumnDefinitions="*,22,*" IsVisible="{Binding ShowVolumeMatch}">
+                <StackPanel Grid.Column="0" Spacing="6">
+                  <TextBlock Classes="label-caps" Text="EXPECTED DRIVE LETTER"/>
+                  <TextBox Text="{Binding ExpectedDriveLetter}" Watermark="e.g. M:"/>
+                  <TextBlock Classes="helper"
+                             Text="Leave blank to skip the check."/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Spacing="6">
+                  <TextBlock Classes="label-caps" Text="EXPECTED VOLUME LABEL"/>
+                  <TextBox Text="{Binding ExpectedVolumeLabel}" Watermark="e.g. My Passport"/>
+                  <TextBlock Classes="helper"
+                             Text="Runs are skipped (not failed) when the drive isn't mounted."/>
+                </StackPanel>
+              </Grid>
+
+              <!-- S3 region + prefix. -->
+              <Grid ColumnDefinitions="*,22,*" IsVisible="{Binding ShowS3}">
+                <StackPanel Grid.Column="0" Spacing="6">
+                  <TextBlock Classes="label-caps" Text="REGION"/>
+                  <TextBox Text="{Binding S3Region}" Watermark="us-east-1 / auto"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Spacing="6">
+                  <TextBlock Classes="label-caps" Text="BUCKET PREFIX"/>
+                  <TextBox Text="{Binding PathOrSubpath}" Watermark="optional/subfolder"/>
+                </StackPanel>
+              </Grid>
+
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <!-- Trailing sentinel (see BackupEditor for reasoning). -->
+        <Border Height="40" Background="Transparent"/>
+
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- Footer — validation summary lives here (NOT at the top of the
+         scrolling form) so it's always visible alongside Save/Cancel.
+         A summary buried at the top would be invisible the moment the
+         user has scrolled past it, which is the typical case when a
+         long form fails validation. -->
+    <StackPanel Grid.Row="2" Spacing="12" Margin="0,20,0,0">
+      <Border Classes="validation-summary" IsVisible="{Binding HasAnyError}">
+        <!-- Grid (not StackPanel Horizontal) so the message column has
+             a finite width — TextWrapping="Wrap" needs a constrained
+             slot, which a horizontal StackPanel doesn't provide. The
+             "!" badge sits in column 0; the message gets the remaining
+             '*' column and wraps across multiple lines as needed. -->
+        <Grid ColumnDefinitions="Auto,10,*">
+          <TextBlock Grid.Column="0" Text="!" FontSize="18" FontWeight="Bold" VerticalAlignment="Top"
+                     Foreground="{DynamicResource DM.Brush.DangerTintFg}"/>
+          <TextBlock Grid.Column="2" Classes="body" FontWeight="SemiBold" TextWrapping="Wrap"
+                     Foreground="{DynamicResource DM.Brush.DangerTintFg}"
+                     Text="{Binding SummaryError}"/>
+        </Grid>
+      </Border>
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+        <Button Classes="ghost" Content="Cancel" Click="OnCancel"/>
+        <Button Classes="primary" Content="Save" Click="OnSave"/>
+      </StackPanel>
+    </StackPanel>
+
+  </Grid>
+</Window>

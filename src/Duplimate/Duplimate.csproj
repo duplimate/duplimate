@@ -63,9 +63,26 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <!--
+      Framework-dependent publish: ships the app + Avalonia + our NuGet
+      dependencies (≈20-30 MB), but NOT the .NET 10 runtime itself. If
+      the user doesn't already have the .NET 10 Desktop Runtime installed,
+      the apphost shows the standard "this app requires .NET — download
+      it?" dialog on first launch and links to Microsoft's download page.
+      Self-contained pushes the exe to ~180 MB; framework-dependent +
+      compression gets us roughly an order of magnitude smaller. Most
+      users on a modern Windows install have .NET already, or get a
+      one-time prompt.
+    -->
     <PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>true</SelfContained>
+    <SelfContained>false</SelfContained>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <!--
+      EnableCompressionInSingleFile is incompatible with SelfContained=false
+      (NETSDK1176 — compression only works on self-contained bundles, because
+      it relies on bundled-runtime initialization). Skipping it; the
+      framework-dependent saving (~150 MB → ~30 MB) is the headline win.
+    -->
     <DebugType>embedded</DebugType>
   </PropertyGroup>
 

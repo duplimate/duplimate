@@ -84,7 +84,7 @@ public sealed class RestoreSettings
 
 public sealed class AppPreferences
 {
-    public AppTheme Theme { get; set; } = AppTheme.Light;
+    public AppTheme Theme { get; set; } = AppTheme.System;
 
     public AccentColor Accent { get; set; } = AccentColor.Ocean;
 
